@@ -1634,14 +1634,23 @@ function renderMarkers() {
 
   const t = currentTransform;
 
-  // Simple: projection gives SVG coords, zoom transform gives screen coords
-  // Markers layer is same size as SVG, so coords match directly
+  // Use the SVG's actual bounding rect to convert SVG coords to page coords,
+  // then subtract the markers layer's position to get relative coords
+  const svgBCR = document.getElementById('mapSvg').getBoundingClientRect();
+  const layerBCR = layer.parentElement.getBoundingClientRect();
+  const dx = svgBCR.left - layerBCR.left;
+  const dy = svgBCR.top - layerBCR.top;
+  // How much the SVG is scaled vs its internal coords
+  const sx = svgBCR.width / mapW;
+  const sy = svgBCR.height / mapH;
+
   const groups = {};
   D.forEach(d => {
     const p = projection([d.tLng, d.tLat]);
     if (!p) return;
-    const tx = t.applyX(p[0]);
-    const ty = t.applyY(p[1]);
+    // Transform through zoom, then scale to actual rendered pixels, then offset
+    const tx = t.applyX(p[0]) * sx + dx;
+    const ty = t.applyY(p[1]) * sy + dy;
     const metro = getMetro(d.toCity, d.toSt);
     if (!groups[metro]) groups[metro] = { xs:[], ys:[], items:[] };
     groups[metro].xs.push(tx);
