@@ -1654,14 +1654,14 @@ function renderMarkers() {
   });
 
   // Layout constants — sized relative to map scale so markers fit inside states
-  const scaleFactor = Math.min(mapW, mapH) / 600; // normalize to ~1.0
-  const R   = 6 * scaleFactor;
-  const coW = 14 * scaleFactor;
-  const coH = 7 * scaleFactor;
+  const scaleFactor = Math.min(mapW, mapH) / 600;
+  const R   = 6 * scaleFactor;      // people circle radius
+  const coW = 8 * scaleFactor;      // company logo — same visual weight as people
+  const coH = 6 * scaleFactor;
   const pGap = 14 * scaleFactor;
-  const cGap = 16 * scaleFactor;
+  const cGap = 10 * scaleFactor;
   const pRowH = 14 * scaleFactor;
-  const cRowH = 9 * scaleFactor;
+  const cRowH = 8 * scaleFactor;
 
   Object.values(groups).forEach(grp => {
     const ppl = grp.items.filter(d => d.type !== 'company').sort((a,b) => b.nw - a.nw);
