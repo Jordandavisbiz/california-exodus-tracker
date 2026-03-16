@@ -1655,26 +1655,19 @@ function renderMarkers() {
     const cos = g.items.filter(d=>d.type==='company').sort((a,b)=>b.nw-a.nw);
     const total = g.items.length;
 
-    // Fixed pixel sizes — zoom spreads cities apart, we don't need to scale gaps
-    const pSz = 26;
-    const coW = 52, coH = 20;
+    // Fixed pixel sizes
+    const pSz = 24;
+    const coW = 60, coH = 30;
 
-    // Balance columns for people
-    let pCols = Math.min(4, ppl.length || 1);
-    if (ppl.length > 4) {
-      for (let c = 3; c <= 5; c++) {
-        if (ppl.length % c === 0) { pCols = c; break; }
-      }
-      if (ppl.length % pCols !== 0) pCols = Math.ceil(ppl.length / 2); // 2 rows
-      pCols = Math.min(5, Math.max(3, pCols));
-    }
+    // People: always use enough columns so max 2 rows
+    const pCols = Math.min(Math.ceil(ppl.length / 2), ppl.length);
     const cCols = Math.min(3, cos.length || 1);
 
-    // Fixed pixel gaps — never scale with zoom
-    const pGap = 34;
-    const cGapH = 60;
-    const pRowH = 34;
-    const cRowH = 28;
+    // Gaps: enough to never overlap
+    const pGap = pSz + 10;   // 34px between circle centers
+    const cGapH = coW + 10;  // 70px between company logo centers
+    const pRowH = pSz + 12;  // 36px between row centers
+    const cRowH = coH + 12;  // 42px between company rows
     const sz = pSz;
     const pRows = Math.ceil(ppl.length / pCols);
     const cRows = Math.ceil(cos.length / cCols);
