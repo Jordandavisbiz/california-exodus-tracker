@@ -1627,25 +1627,25 @@ function getMetro(city, st) {
 function renderMarkers() {
   const layer = document.getElementById('markersLayer');
   const tooltip = document.getElementById('tooltip');
-  const mapArea = document.getElementById('mapArea');
-  const svgEl = document.getElementById('mapSvg');
   layer.innerHTML = '';
 
   const t = currentTransform;
 
-  // Get the SVG's position relative to the map-area container
+  // The SVG might be rendered at a different size than mapW/mapH
+  // due to flex/grid layout. Get the actual rendered size and scale.
+  const svgEl = document.getElementById('mapSvg');
   const svgRect = svgEl.getBoundingClientRect();
-  const areaRect = mapArea.getBoundingClientRect();
-  const offX = svgRect.left - areaRect.left;
-  const offY = svgRect.top - areaRect.top;
+  const scaleX = svgRect.width / mapW;
+  const scaleY = svgRect.height / mapH;
 
   // Group by metro, collect all positions to average for center
   const groups = {};
   D.forEach(d => {
     const p = projection([d.tLng, d.tLat]);
     if (!p) return;
-    const tx = t.applyX(p[0]) + offX;
-    const ty = t.applyY(p[1]) + offY;
+    // Apply zoom transform, then scale to actual rendered size
+    const tx = t.applyX(p[0]) * scaleX;
+    const ty = t.applyY(p[1]) * scaleY;
     const metro = getMetro(d.toCity, d.toSt);
     if (!groups[metro]) groups[metro] = { xs:[], ys:[], items:[] };
     groups[metro].xs.push(tx);
@@ -1900,7 +1900,7 @@ function renderCards(filter, search) {
 
   document.getElementById('cards').innerHTML = list.map(d => {
     const types = { person:'b-person', company:'b-company', vc:'b-vc', media:'b-media' };
-    const labels = { person:'INDIVIDUAL', company:'COMPANY', vc:'VC/INVESTOR', media:'MEDIA' };
+    const labels = { person:'ENTREPRENEUR', company:'COMPANY', vc:'INVESTOR', media:'MEDIA' };
     const initials = d.name.split(' ').map(w=>w[0]).join('').slice(0,2);
     const isCo = d.type === 'company';
 
