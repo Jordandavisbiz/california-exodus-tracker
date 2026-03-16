@@ -1736,11 +1736,11 @@ function sel(id) {
   const types = { person:'b-person', company:'b-company', vc:'b-vc', media:'b-media' };
   const labels = { person:'INDIVIDUAL', company:'COMPANY', vc:'VC/INVESTOR', media:'MEDIA' };
   const initials = d.name.split(' ').map(w=>w[0]).join('').slice(0,2);
-  const hasImg = d.img && d.type !== 'company';
+  const isCo = d.type === 'company';
 
   el.innerHTML = `
     <div class="d-hero fi">
-      <div class="d-avatar">${hasImg ? `<img src="${d.img}" onerror="this.parentElement.textContent='${initials}'">` : (d.img ? `<img src="${d.img}" style="width:80%;height:auto;object-fit:contain;" onerror="this.parentElement.textContent='${initials}'">` : initials)}</div>
+      <div class="d-avatar" style="${isCo?'background:#fff;border-radius:12px;':''}">${d.img ? `<img src="${d.img}" onerror="this.parentElement.textContent='${initials}'" style="${isCo?'object-fit:contain;padding:8px;':''}">` : initials}</div>
       <div class="d-name">${d.name}</div>
       <div class="d-role">${d.role}</div>
       <span class="badge ${types[d.type]}" style="margin-top:4px;">${labels[d.type]}</span>
