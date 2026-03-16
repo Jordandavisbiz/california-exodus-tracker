@@ -1139,7 +1139,7 @@ const D = [
     bg:'Founder and CEO of The Production Board (climate/food tech holding company). All-In Podcast co-host ("The Sultan of Science"). Former Climate Corp CEO (sold to Monsanto for $1.1B). Confirmed investing "from Austin" on podcast.',
     quotes:[],
     investments:['The Production Board','Climate Corp (former)','Ohalo Genetics'],
-    img:null,
+    img:'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2d/David_Albert_Friedberg.jpg/400px-David_Albert_Friedberg.jpg',
     color:'#b388ff',
     sources:[{label:'Apple Podcasts',url:'https://podcasts.apple.com/us/podcast/investing-from-austin-with-jcal/id1446779826?i=1000675925376'}]
   },
@@ -1153,7 +1153,7 @@ const D = [
     bg:'Co-founded DoorDash. Publicly announced plans to leave California in response to proposed wealth tax. Destination not yet confirmed. DoorDash remains headquartered in SF.',
     quotes:["Stupid wealth tax proposals... make it irresponsible for me not to plan leaving the state."],
     investments:['DoorDash (co-founder)'],
-    img:null,
+    img:'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d9/Andy_Fang_%2852165329831%29_%28cropped%29.jpg/400px-Andy_Fang_%2852165329831%29_%28cropped%29.jpg',
     color:'#4fc3f7',
     sources:[{label:'Andy Fang on X',url:'https://x.com/andyfang/status/2010418126610186585'}]
   },
@@ -1338,7 +1338,7 @@ const D = [
     bg:'Largest self-storage REIT in the world. Announced HQ relocation from Glendale, CA to Frisco, TX (DFW area) in Feb 2025.',
     quotes:[],
     investments:[],
-    img:null,
+    img:'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9b/Public_Storage_Logo.svg/400px-Public_Storage_Logo.svg.png',
     color:'#ff6b35',
     sources:[{label:'Fox Business',url:'https://www.foxbusiness.com/markets/public-storage-relocates-headquarters-from-california-texas'}]
   },
@@ -1352,7 +1352,7 @@ const D = [
     bg:'Playboy Enterprises / PLBY Group announced HQ move from LA to Miami Beach. CEO Ben Kohn publicly criticized California.',
     quotes:["California is anti-business and a very difficult place to do business as an employer. — CEO Ben Kohn"],
     investments:[],
-    img:null,
+    img:'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/Playboy_logo.svg/400px-Playboy_logo.svg.png',
     color:'#ff6b35',
     sources:[{label:'Fox Business',url:'https://www.foxbusiness.com/media/playboy-ceo-calls-california-anti-business-company-flees-miami-beach-new-headquarters'}]
   },
@@ -1655,19 +1655,19 @@ function renderMarkers() {
     const cos = g.items.filter(d=>d.type==='company').sort((a,b)=>b.nw-a.nw);
     const total = g.items.length;
 
-    // Scale marker size DOWN for large groups, UP with zoom
-    const baseSz = total > 10 ? 20 : total > 6 ? 24 : 28;
-    const sz = Math.min(52, baseSz * Math.pow(t.k, 0.3));
-    const coW = sz * 1.4, coH = sz * 0.65;
+    // Aggressively scale markers for large groups
+    const baseSz = total > 12 ? 16 : total > 8 ? 18 : total > 5 ? 22 : 26;
+    const sz = Math.min(44, baseSz * Math.pow(t.k, 0.3));
+    const coW = Math.min(sz * 1.6, 50), coH = sz * 0.6;
 
-    // More columns for larger groups to spread horizontally
-    const maxC = total > 10 ? 6 : total > 6 ? 5 : 4;
+    // Wide grids for big groups
+    const maxC = total > 12 ? 7 : total > 8 ? 6 : total > 5 ? 5 : 4;
     const pCols = Math.min(maxC, ppl.length || 1);
     const cCols = Math.min(maxC, cos.length || 1);
 
-    const pGap = sz + 6;
-    const cGapH = coW + 6;
-    const rowH = sz + 8;
+    const pGap = sz + 4;
+    const cGapH = coW + 4;
+    const rowH = sz + 5;
     const pRows = Math.ceil(ppl.length / pCols);
     const cRows = Math.ceil(cos.length / cCols);
     const secGap = (ppl.length && cos.length) ? 8 : 0;
@@ -2203,7 +2203,7 @@ const STAYING = [
   {name:'Jensen Huang',role:'CEO, Nvidia',nw:'~$109B',nwSource:'Forbes 2026',quote:"Whatever taxes they'd like to apply, so be it.",img:'https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/Jensen_Huang_CEO_of_Nvidia.jpg/400px-Jensen_Huang_CEO_of_Nvidia.jpg'},
   {name:'Sam Altman',role:'CEO, OpenAI',nw:'~$2B',nwSource:'Est.',quote:'',img:'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Sam_Altman_CropEdit.jpg/400px-Sam_Altman_CropEdit.jpg'},
   {name:'Marc Benioff',role:'CEO, Salesforce',nw:'~$10B',nwSource:'Forbes 2026',quote:'',img:'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Marc_R._Benioff_World_Economic_Forum_2013_crop.jpg/400px-Marc_R._Benioff_World_Economic_Forum_2013_crop.jpg'},
-  {name:'Vinod Khosla',role:'Founder, Khosla Ventures',nw:'~$6B',nwSource:'Forbes 2026',quote:'Critical of the tax bill design but not moving.',img:null},
+  {name:'Vinod Khosla',role:'Founder, Khosla Ventures',nw:'~$6B',nwSource:'Forbes 2026',quote:'Critical of the tax bill design but not moving.',img:'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f7/2024-03-14_SXSW_Vinod-Khosla_08741.jpg/400px-2024-03-14_SXSW_Vinod-Khosla_08741.jpg'},
   {name:'Reid Hoffman',role:'Co-Founder, LinkedIn',nw:'~$2.5B',nwSource:'Forbes 2026',quote:'',img:'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Reid_Hoffman_-_Collision_2019_-_49078705422_%28cropped%29.jpg/400px-Reid_Hoffman_-_Collision_2019_-_49078705422_%28cropped%29.jpg'},
 ];
 
