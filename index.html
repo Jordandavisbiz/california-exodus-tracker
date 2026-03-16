@@ -839,7 +839,7 @@ const D = [
     type:'person', nw:205e9, nwLabel:'~$205B', nwSource:'Bloomberg Mar 2026',
     fromCity:'Woodside', fromSt:'CA', fLat:37.43, fLng:-122.25,
     toCity:'Manalapan', toSt:'FL', tLat:26.57, tLng:-80.04,
-    date:'2020-12', dateLabel:'Dec 2020 (HI) → May 2023 (FL)', confirmed:true,
+    date:'2023-05', dateLabel:'Dec 2020 (HI) → May 2023 (FL)', confirmed:true,
     reasons:['Taxes','Lifestyle','Remote Work'],
     bg:'Owns 98% of Hawaiian island of Lanai. Left CA for Hawaii Dec 2020, then filed Declaration of Domicile in Palm Beach County FL May 2023. $173M Manalapan "Gemini Mansion" estate. Registered FL voter since Apr 2023. Peak net worth $393B in Sept 2025 — briefly world\'s richest person.',
     quote:"I have moved to the State of Hawaii and I will be using the power of Zoom.",
@@ -865,7 +865,7 @@ const D = [
     type:'vc', nw:25e9, nwLabel:'~$25B', nwSource:'Bloomberg Mar 2026',
     fromCity:'Los Angeles', fromSt:'CA', fLat:34.05, fLng:-118.24,
     toCity:'Miami Beach', toSt:'FL', tLat:25.79, tLng:-80.13,
-    date:'2020-12', dateLabel:'2020 (property) → 2024 (voter reg)', confirmed:true,
+    date:'2024-03', dateLabel:'2020 (property) → 2024 (voter reg)', confirmed:true,
     reasons:['Taxes','Political Climate','CA Billionaire Tax Act'],
     bg:'Co-founded PayPal, Palantir. Early Facebook investor. Founders Fund GP. Bought two Venetian Islands homes ~$18M in 2020. Moved voter registration to FL March 2024. Thiel Capital signed Wynwood Miami lease Dec 2025. Palantir moved HQ to Miami Feb 2026.',
     quote:"Silicon Valley is a one-party state... the politics have become very one-sided.",
@@ -1037,7 +1037,7 @@ const D = [
     type:'company', nw:57.4e9, nwLabel:'$57.4B rev', nwSource:'FY2025 earnings release',
     fromCity:'Redwood City', fromSt:'CA', fLat:37.49, fLng:-122.24,
     toCity:'Nashville', toSt:'TN', tLat:36.16, tLng:-86.78,
-    date:'2020-12', dateLabel:'Dec 2020 (Austin) → 2024 (Nashville)', confirmed:true,
+    date:'2024-04', dateLabel:'Dec 2020 (Austin) → 2024 (Nashville)', confirmed:true,
     reasons:['Business Climate','Taxes','Flexibility'],
     bg:'Initially moved HQ to Austin TX Dec 2020, then relocated again to Nashville TN as "world HQ" in 2024.',
     quote:'',
@@ -1085,11 +1085,11 @@ const D = [
     color:'#ff6b35'
   },
   {
-    id:'palantir', name:'Palantir Technologies', role:'AI / Data · Rev: ~$2.9B',
-    type:'company', nw:2.9e9, nwLabel:'$2.9B rev', nwSource:'FY2024',
+    id:'palantir', name:'Palantir Technologies', role:'AI / Data · Rev: ~$4.5B',
+    type:'company', nw:4.5e9, nwLabel:'$4.5B rev', nwSource:'FY2025',
     fromCity:'Palo Alto', fromSt:'CA', fLat:37.44, fLng:-122.14,
     toCity:'Miami', toSt:'FL', tLat:25.96, tLng:-80.14,
-    date:'2020-08', dateLabel:'Aug 2020 (Denver) → Feb 2026 (Miami)', confirmed:true,
+    date:'2026-02', dateLabel:'Aug 2020 (Denver) → Feb 2026 (Miami)', confirmed:true,
     reasons:['Anti-SV Monoculture','CO AI Regulation','Political Alignment'],
     bg:'Co-founded by Peter Thiel. Moved from Palo Alto to Denver CO (Aug 2020), then to Aventura/Miami FL (Feb 2026). CEO Karp cited protests outside Denver office and CO AI regulation law.',
     quote:'',
@@ -1218,16 +1218,16 @@ async function renderMap() {
     .attr('fill', f => {
       const fips = String(f.id).padStart(2,'0');
       const name = stateNames[fips]||'';
-      if(fips===caFips) return '#1a0a0a';
-      if(destStates[name]) return '#0a1a0f';
-      return '#0c0c14';
+      if(fips===caFips) return '#2a1010';
+      if(destStates[name]) return '#102a18';
+      return '#141420';
     })
     .attr('stroke', f => {
       const fips = String(f.id).padStart(2,'0');
       const name = stateNames[fips]||'';
-      if(fips===caFips) return '#3a1515';
-      if(destStates[name]) return '#153a1f';
-      return '#1a1a28';
+      if(fips===caFips) return '#552222';
+      if(destStates[name]) return '#225533';
+      return '#2a2a3a';
     })
     .attr('stroke-width', 0.5)
     .style('cursor', f => {
@@ -1240,20 +1240,20 @@ async function renderMap() {
     })
     .on('mouseenter', function(event, f) {
       const name = stateNames[String(f.id).padStart(2,'0')]||'';
-      if(destStates[name]) d3.select(this).attr('fill','#0f2a18').attr('stroke','#2a5a3a');
-      if(name==='California') d3.select(this).attr('fill','#2a0f0f').attr('stroke','#5a2a2a');
+      if(destStates[name]) d3.select(this).attr('fill','#183a22').attr('stroke','#33774a');
+      if(name==='California') d3.select(this).attr('fill','#3a1515').attr('stroke','#773333');
     })
     .on('mouseleave', function(event, f) {
       const fips = String(f.id).padStart(2,'0');
       const name = stateNames[fips]||'';
-      if(fips===caFips) d3.select(this).attr('fill','#1a0a0a').attr('stroke','#3a1515');
-      else if(destStates[name]) d3.select(this).attr('fill','#0a1a0f').attr('stroke','#153a1f');
-      else d3.select(this).attr('fill','#0c0c14').attr('stroke','#1a1a28');
+      if(fips===caFips) d3.select(this).attr('fill','#2a1010').attr('stroke','#552222');
+      else if(destStates[name]) d3.select(this).attr('fill','#102a18').attr('stroke','#225533');
+      else d3.select(this).attr('fill','#141420').attr('stroke','#2a2a3a');
     });
 
   // State mesh
   g.append('path').datum(stateMesh).attr('d', pathGen)
-    .attr('fill','none').attr('stroke','#1c1c2c').attr('stroke-width',0.4);
+    .attr('fill','none').attr('stroke','#2a2a3e').attr('stroke-width',0.6);
 
   // California label
   const caCenter = projection([-119.4, 37.2]);
