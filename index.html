@@ -1545,7 +1545,8 @@ async function renderMap() {
     .on('zoom', (event) => {
       currentTransform = event.transform;
       g.attr('transform', event.transform);
-      renderMarkers(); // reposition HTML markers
+      // Markers are inside the SVG <g> now, so they transform with zoom automatically
+      // No need to reposition
     });
   svg.call(zoom);
 
@@ -1628,29 +1629,24 @@ function getMetro(city, st) {
 }
 
 function renderMarkers() {
-  const layer = document.getElementById('markersLayer');
-  const tooltip = document.getElementById('tooltip');
-  layer.innerHTML = '';
+  // Remove old HTML markers
+  document.getElementById('markersLayer').innerHTML = '';
 
+  const tooltip = document.getElementById('tooltip');
   const t = currentTransform;
 
-  // Use the SVG's actual bounding rect to convert SVG coords to page coords,
-  // then subtract the markers layer's position to get relative coords
-  const svgBCR = document.getElementById('mapSvg').getBoundingClientRect();
-  const layerBCR = layer.parentElement.getBoundingClientRect();
-  const dx = svgBCR.left - layerBCR.left;
-  const dy = svgBCR.top - layerBCR.top;
-  // How much the SVG is scaled vs its internal coords
-  const sx = svgBCR.width / mapW;
-  const sy = svgBCR.height / mapH;
+  // Remove old SVG marker group if exists
+  d3.select('#markerGroup').remove();
+  // Create marker group INSIDE the zoom-transformed <g> so coords match exactly
+  const mg = d3.select('#mapG').append('g').attr('id','markerGroup');
 
   const groups = {};
   D.forEach(d => {
     const p = projection([d.tLng, d.tLat]);
     if (!p) return;
-    // Transform through zoom, then scale to actual rendered pixels, then offset
-    const tx = t.applyX(p[0]) * sx + dx;
-    const ty = t.applyY(p[1]) * sy + dy;
+    // Raw projection coords — no transform needed, the parent <g> handles zoom
+    const tx = p[0];
+    const ty = p[1];
     const metro = getMetro(d.toCity, d.toSt);
     if (!groups[metro]) groups[metro] = { xs:[], ys:[], items:[] };
     groups[metro].xs.push(tx);
@@ -1693,7 +1689,7 @@ function renderMarkers() {
       const rc = Math.min(pCols, ppl.length - r * pCols);
       const px = g.x + (c - (rc - 1) / 2) * pGap;
       const py = yStart + r * pRowH;
-      mkMarker(d, px, py, pSz, pSz, false, layer, tooltip, t);
+      mkMarker(d, px, py, pSz, pSz, false, mg, tooltip, t);
     });
 
     yStart += pRows * pRowH + secGap;
@@ -1703,24 +1699,37 @@ function renderMarkers() {
       const rc = Math.min(cCols, cos.length - r * cCols);
       const px = g.x + (c - (rc - 1) / 2) * cGapH;
       const py = yStart + r * cRowH;
-      mkMarker(d, px, py, coW, coH, true, layer, tooltip, t);
+      mkMarker(d, px, py, coW, coH, true, mg, tooltip, t);
     });
   });
 }
 
-function mkMarker(d,px,py,w,h,isCo,layer,tooltip,t) {
+function mkMarker(d,px,py,w,h,isCo,mgRef,tooltip,t) {
+  const ini = d.name.split(' ').map(x=>x[0]).join('').slice(0,2);
+  const fo = document.createElementNS('http://www.w3.org/2000/svg','foreignObject');
+  fo.setAttribute('x', px - w/2);
+  fo.setAttribute('y', py - h/2);
+  fo.setAttribute('width', w);
+  fo.setAttribute('height', h);
+  fo.style.overflow = 'visible';
+
   const el = document.createElement('div');
   el.className = `hm ${isCo?'co':''}`;
-  el.style.cssText = `width:${w}px;height:${h}px;left:${px-w/2}px;top:${py-h/2}px;border-color:${d.color};font-size:${Math.max(7,8*Math.pow(t.k,0.2))}px;`;
+  el.style.cssText = `width:${w}px;height:${h}px;border-color:${d.color};font-size:8px;pointer-events:auto;`;
   el.dataset.id = d.id;
-  const ini = d.name.split(' ').map(x=>x[0]).join('').slice(0,2);
+
   if(d.img){const im=document.createElement('img');im.src=d.img;im.alt=d.name;im.loading='lazy';im.onerror=function(){this.remove();el.textContent=ini;};el.appendChild(im);}
   else{el.textContent=ini;}
-  if(t.k>2.5){const lb=document.createElement('div');lb.style.cssText=`position:absolute;bottom:-12px;left:50%;transform:translateX(-50%);font-family:JetBrains Mono,monospace;font-size:${Math.min(9,5*t.k/2)}px;color:#aaa;white-space:nowrap;pointer-events:none;text-shadow:0 1px 4px #000;`;lb.textContent=isCo?d.name:d.name.split(' ').slice(0,2).join(' ');el.appendChild(lb);}
+
   el.addEventListener('mouseenter',()=>{
+    // Position tooltip in screen coords
+    const rect = el.getBoundingClientRect();
     tooltip.style.display='block';
     tooltip.innerHTML=`<div class="tt-name">${d.name}</div><div class="tt-nw">${d.nwLabel}</div><div class="tt-route">${d.fromCity}, ${d.fromSt} → ${d.toCity}, ${d.toSt}</div>`;
-    tooltip.style.left=(px+20)+'px';tooltip.style.top=(py-30)+'px';tooltip.style.borderColor=d.color;
+    const mapRect = document.getElementById('mapArea').getBoundingClientRect();
+    tooltip.style.left=(rect.right - mapRect.left + 8)+'px';
+    tooltip.style.top=(rect.top - mapRect.top - 10)+'px';
+    tooltip.style.borderColor=d.color;
     document.querySelectorAll('.arc-bg,.arc-fg').forEach(p=>{
       if(p.dataset.id===d.id){p.style.opacity=p.classList.contains('arc-bg')?'0.35':'1';p.style.strokeWidth='3';}
       else{p.style.opacity=p.classList.contains('arc-bg')?'0.04':'0.15';}
@@ -1728,7 +1737,9 @@ function mkMarker(d,px,py,w,h,isCo,layer,tooltip,t) {
   });
   el.addEventListener('mouseleave',()=>{tooltip.style.display='none';document.querySelectorAll('.arc-bg,.arc-fg').forEach(p=>{p.style.opacity='';p.style.strokeWidth='';});});
   el.addEventListener('click',()=>sel(d.id));
-  layer.appendChild(el);
+
+  fo.appendChild(el);
+  mgRef.node().appendChild(fo);
 }
 
 // ── STATE DETAIL ──
