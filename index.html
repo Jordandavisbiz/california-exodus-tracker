@@ -496,9 +496,22 @@
     .card { padding: 6px 8px; }
     .card-avatar { width: 32px; height: 32px; }
 
-    /* Detail panel on mobile */
-    .rp-tabs { overflow-x: auto; }
+    /* Detail panel as slide-up drawer on mobile */
+    .rpanel {
+      position: fixed !important; bottom: 0; left: 0; right: 0;
+      height: 0; max-height: 80vh;
+      border-top: 2px solid var(--accent) !important;
+      border-radius: 16px 16px 0 0;
+      z-index: 300;
+      transition: height 0.3s ease;
+      overflow: hidden;
+    }
+    .rpanel.open { height: 75vh; }
+    .rpanel .rp-tabs { overflow-x: auto; position: relative; }
     .rp-tab { padding: 8px 8px; font-size: 9px; white-space: nowrap; }
+    .rpanel .drawer-handle {
+      display: block !important;
+    }
 
     /* Stat cards modal */
     .stat-cards-grid { grid-template-columns: 1fr; }
@@ -702,7 +715,11 @@
     </div>
   </div>
 
-  <div class="rpanel">
+  <div class="rpanel" id="rpanel">
+    <div class="drawer-handle" style="display:none;text-align:center;padding:8px 0 4px;cursor:pointer;" onclick="document.getElementById('rpanel').classList.remove('open')">
+      <div style="width:40px;height:4px;background:var(--text3);border-radius:2px;margin:0 auto;"></div>
+      <div style="font-size:9px;color:var(--text3);margin-top:4px;font-family:JetBrains Mono,monospace;">SWIPE DOWN TO CLOSE</div>
+    </div>
     <div class="rp-tabs">
       <button class="rp-tab on" data-t="detail">DETAIL</button>
       <button class="rp-tab" data-t="analytics">ANALYTICS</button>
@@ -1489,6 +1506,9 @@ function showStateDetail(stateName) {
   const noTaxStates = ['TX','FL','NV','TN'];
   const destTaxRate = noTaxStates.includes(abbr) ? 0 : null;
 
+  // Open drawer on mobile
+  if (window.innerWidth <= 768) document.getElementById('rpanel').classList.add('open');
+
   // Show in detail panel
   document.querySelectorAll('.rp-tab').forEach(t=>t.classList.remove('on'));
   document.querySelector('[data-t="detail"]').classList.add('on');
@@ -1556,6 +1576,9 @@ function showLassoResults(ids) {
   const companies = items.filter(d => d.type === 'company');
   const totalNw = people.reduce((s,d) => s+d.nw, 0);
   const fmt = v => v>=1e12?'$'+(v/1e12).toFixed(1)+'T':v>=1e9?'$'+(v/1e9).toFixed(0)+'B':v>=1e6?'$'+(v/1e6).toFixed(0)+'M':'$'+v;
+
+  // Open drawer on mobile
+  if (window.innerWidth <= 768) document.getElementById('rpanel').classList.add('open');
 
   // Switch to detail tab and show lasso summary
   document.querySelectorAll('.rp-tab').forEach(t=>t.classList.remove('on'));
@@ -1658,6 +1681,11 @@ function sel(id) {
   const d = D.find(e => e.id === id);
   if (!d) return;
 
+  // Open drawer on mobile
+  if (window.innerWidth <= 768) {
+    document.getElementById('rpanel').classList.add('open');
+  }
+
   // Switch to detail tab
   document.querySelectorAll('.rp-tab').forEach(t => t.classList.remove('on'));
   document.querySelector('[data-t="detail"]').classList.add('on');
@@ -1691,7 +1719,7 @@ function sel(id) {
         <div class="sl">${d.type==='company'?'Revenue/Val':'Est. Net Worth'}</div>
       </div>
       <div class="d-stat">
-        <div class="sv" style="font-size:14px; color:var(--blue);">${d.dateLabel.split(/\s/).pop()}</div>
+        <div class="sv" style="font-size:14px; color:var(--blue);">${d.date.split('-')[0]}</div>
         <div class="sl">Year</div>
       </div>
     </div>
