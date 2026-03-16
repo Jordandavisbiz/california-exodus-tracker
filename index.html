@@ -170,8 +170,14 @@
     width: 100%; height: 100%; object-fit: cover;
   }
   .card-avatar-co {
-    border-radius: 8px;
+    border-radius: 6px;
     background: #fff;
+    width: 52px !important;
+    height: 32px !important;
+  }
+  .card-avatar-co img {
+    object-fit: contain !important;
+    padding: 3px !important;
   }
   .card.on .card-avatar { border-color: var(--accent); }
 
@@ -351,10 +357,12 @@
   .d-avatar-co {
     background: #fff !important;
     border-radius: 12px !important;
+    width: 120px !important;
+    height: 60px !important;
   }
   .d-avatar-co img {
     object-fit: contain !important;
-    padding: 8px !important;
+    padding: 6px !important;
   }
   .d-name { font-size: 16px; font-weight: 700; }
   .d-role { font-size: 11px; color: var(--text2); margin-top: 2px; }
