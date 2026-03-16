@@ -1655,40 +1655,52 @@ function renderMarkers() {
     const cos = g.items.filter(d=>d.type==='company').sort((a,b)=>b.nw-a.nw);
     const total = g.items.length;
 
-    // Aggressively scale markers for large groups
-    const baseSz = total > 12 ? 16 : total > 8 ? 18 : total > 5 ? 22 : 26;
-    const sz = Math.min(44, baseSz * Math.pow(t.k, 0.3));
-    const coW = Math.min(sz * 1.6, 50), coH = sz * 0.6;
+    // People: small circles, fit evenly into rows
+    // Pick columns that make rows as balanced as possible
+    const pSz = Math.min(44, (ppl.length > 8 ? 20 : ppl.length > 5 ? 22 : 26) * Math.pow(t.k, 0.3));
+    // Find best column count: prefer even rows
+    let pCols = Math.min(5, ppl.length || 1);
+    if (ppl.length > 0) {
+      // Try 3,4,5 cols — pick the one with least leftover in last row
+      let bestCols = pCols, bestLeftover = ppl.length;
+      for (let c = 3; c <= Math.min(6, ppl.length); c++) {
+        const leftover = ppl.length % c;
+        if (leftover === 0 || (leftover >= c/2 && leftover < bestLeftover)) { bestCols = c; bestLeftover = leftover === 0 ? 0 : leftover; }
+      }
+      pCols = bestCols;
+    }
 
-    // Wide grids for big groups
-    const maxC = total > 12 ? 7 : total > 8 ? 6 : total > 5 ? 5 : 4;
-    const pCols = Math.min(maxC, ppl.length || 1);
-    const cCols = Math.min(maxC, cos.length || 1);
+    // Companies: keep decent size, always
+    const coSz = Math.min(50, 30 * Math.pow(t.k, 0.3));
+    const coW = coSz * 1.6, coH = coSz * 0.7;
+    const cCols = Math.min(4, cos.length || 1);
 
-    const pGap = sz + 4;
-    const cGapH = coW + 4;
-    const rowH = sz + 5;
+    const pGap = pSz + 6;
+    const cGapH = coW + 8;
+    const pRowH = pSz + 6;
+    const cRowH = coH + 8;
+    const sz = pSz; // for mkMarker
     const pRows = Math.ceil(ppl.length / pCols);
     const cRows = Math.ceil(cos.length / cCols);
-    const secGap = (ppl.length && cos.length) ? 8 : 0;
-    const totalH = pRows * rowH + cRows * rowH + secGap;
-    let yStart = g.y - totalH / 2 + 10;
+    const secGap = (ppl.length && cos.length) ? 10 : 0;
+    const totalH = pRows * pRowH + cRows * cRowH + secGap;
+    let yStart = g.y - totalH / 2 + 12;
 
     ppl.forEach((d, i) => {
       const r = Math.floor(i / pCols), c = i % pCols;
       const rc = Math.min(pCols, ppl.length - r * pCols);
       const px = g.x + (c - (rc - 1) / 2) * pGap;
-      const py = yStart + r * rowH;
-      mkMarker(d, px, py, sz, sz, false, layer, tooltip, t);
+      const py = yStart + r * pRowH;
+      mkMarker(d, px, py, pSz, pSz, false, layer, tooltip, t);
     });
 
-    yStart += pRows * rowH + secGap;
+    yStart += pRows * pRowH + secGap;
 
     cos.forEach((d, i) => {
       const r = Math.floor(i / cCols), c = i % cCols;
       const rc = Math.min(cCols, cos.length - r * cCols);
       const px = g.x + (c - (rc - 1) / 2) * cGapH;
-      const py = yStart + r * rowH;
+      const py = yStart + r * cRowH;
       mkMarker(d, px, py, coW, coH, true, layer, tooltip, t);
     });
   });
