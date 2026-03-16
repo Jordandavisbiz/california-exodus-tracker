@@ -1655,33 +1655,27 @@ function renderMarkers() {
     const cos = g.items.filter(d=>d.type==='company').sort((a,b)=>b.nw-a.nw);
     const total = g.items.length;
 
-    // People: small circles, fit evenly into rows
-    // Pick columns that make rows as balanced as possible
-    const pSz = Math.min(44, (ppl.length > 8 ? 20 : ppl.length > 5 ? 22 : 26) * Math.pow(t.k, 0.3));
-    // Find best column count: prefer even rows
-    let pCols = Math.min(5, ppl.length || 1);
-    if (ppl.length > 0) {
-      // Try 3,4,5 cols — pick the one with least leftover in last row
-      let bestCols = pCols, bestLeftover = ppl.length;
-      for (let c = 3; c <= Math.min(6, ppl.length); c++) {
-        const leftover = ppl.length % c;
-        if (leftover === 0 || (leftover >= c/2 && leftover < bestLeftover)) { bestCols = c; bestLeftover = leftover === 0 ? 0 : leftover; }
+    // Fixed pixel sizes — zoom spreads cities apart, we don't need to scale gaps
+    const pSz = 26;
+    const coW = 52, coH = 20;
+
+    // Balance columns for people
+    let pCols = Math.min(4, ppl.length || 1);
+    if (ppl.length > 4) {
+      for (let c = 3; c <= 5; c++) {
+        if (ppl.length % c === 0) { pCols = c; break; }
       }
-      pCols = bestCols;
+      if (ppl.length % pCols !== 0) pCols = Math.ceil(ppl.length / 2); // 2 rows
+      pCols = Math.min(5, Math.max(3, pCols));
     }
+    const cCols = Math.min(3, cos.length || 1);
 
-    // Companies: keep decent size, always
-    const coSz = Math.min(50, 30 * Math.pow(t.k, 0.3));
-    const coW = coSz * 1.6, coH = coSz * 0.7;
-    const cCols = Math.min(4, cos.length || 1);
-
-    // Gaps grow with zoom — this is the key to making zoom useful
-    const zoomSpread = Math.pow(t.k, 0.6);
-    const pGap = (pSz + 8) * zoomSpread;
-    const cGapH = (coW + 10) * zoomSpread;
-    const pRowH = (pSz + 8) * zoomSpread;
-    const cRowH = (coH + 10) * zoomSpread;
-    const sz = pSz; // for mkMarker
+    // Fixed pixel gaps — never scale with zoom
+    const pGap = 34;
+    const cGapH = 60;
+    const pRowH = 34;
+    const cRowH = 28;
+    const sz = pSz;
     const pRows = Math.ceil(ppl.length / pCols);
     const cRows = Math.ceil(cos.length / cCols);
     const secGap = (ppl.length && cos.length) ? 10 : 0;
