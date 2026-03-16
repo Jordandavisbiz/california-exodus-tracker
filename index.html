@@ -1627,17 +1627,25 @@ function getMetro(city, st) {
 function renderMarkers() {
   const layer = document.getElementById('markersLayer');
   const tooltip = document.getElementById('tooltip');
+  const mapArea = document.getElementById('mapArea');
+  const svgEl = document.getElementById('mapSvg');
   layer.innerHTML = '';
 
   const t = currentTransform;
+
+  // Get the SVG's position relative to the map-area container
+  const svgRect = svgEl.getBoundingClientRect();
+  const areaRect = mapArea.getBoundingClientRect();
+  const offX = svgRect.left - areaRect.left;
+  const offY = svgRect.top - areaRect.top;
 
   // Group by metro, collect all positions to average for center
   const groups = {};
   D.forEach(d => {
     const p = projection([d.tLng, d.tLat]);
     if (!p) return;
-    const tx = t.applyX(p[0]);
-    const ty = t.applyY(p[1]);
+    const tx = t.applyX(p[0]) + offX;
+    const ty = t.applyY(p[1]) + offY;
     const metro = getMetro(d.toCity, d.toSt);
     if (!groups[metro]) groups[metro] = { xs:[], ys:[], items:[] };
     groups[metro].xs.push(tx);
