@@ -827,11 +827,11 @@
   <div class="sb-main">
     <div class="sb-label">Estimated CA Tax Revenue Lost</div>
     <div class="sb-counter" id="sbCounter">$0</div>
-    <div class="sb-sub">and counting — based on departed billionaire wealth × CA tax rates</div>
+    <div class="sb-sub">and counting — est. annual income tax (2% yield × 13.3% rate) + proposed 5% wealth tax</div>
   </div>
   <div class="sb-mini">
     <div class="sb-mv" style="color:var(--accent);" id="sbOneTime">$0</div>
-    <div class="sb-ml">One-Time Wealth Tax Lost</div>
+    <div class="sb-ml">Proposed Wealth Tax Avoided</div>
   </div>
   <div class="sb-mini">
     <div class="sb-mv" style="color:var(--gold);" id="sbAnnual">$0</div>
@@ -1969,8 +1969,8 @@ function renderAnalytics() {
 
   // Tax comparison
   const taxes = [
-    ['California',13.3,'#f44336'],['Hawaii',11,'#ffc107'],['Montana',5.9,'#888'],
-    ['Colorado',4.4,'#66bb6a'],['Tennessee',0,'#4fc3f7'],['Texas',0,'#ff6b35'],
+    ['California',13.3,'#f44336'],['Hawaii',11,'#ffc107'],['Montana',5.65,'#888'],
+    ['Colorado',4.0,'#66bb6a'],['Tennessee',0,'#4fc3f7'],['Texas',0,'#ff6b35'],
     ['Florida',0,'#4fc3f7'],['Nevada',0,'#b388ff']
   ];
   let taxHtml = taxes.map(([s,r,c])=>`
@@ -2000,7 +2000,10 @@ function renderAnalytics() {
         <div class="d-stat"><div class="sv" style="font-size:13px;">5%</div><div class="sl">Proposed Wealth Tax</div></div>
       </div>
       <p style="font-size:10px; color:var(--text3); margin-top:8px; line-height:1.4;">
-        The CA Billionaire Tax Act would impose a one-time 5% levy on net worth exceeding $1B for residents as of Jan 1, 2026. It is a ballot initiative — not yet passed. Chamath Palihapitiya estimates $500B–$1T in billionaire wealth has left the state. IRS data confirms $102B in adjusted gross income left via migration from 2020–2022 alone. Top destinations by income: Texas (+$14B), Nevada (+$10B), Florida (+$8B), Arizona (+$7B).
+        <b>2026 Billionaire Tax Act (Initiative 25-0024A1):</b> Proposed one-time 5% excise tax on net worth exceeding $1B. Introduced by SEIU-UHW. Status: ballot initiative collecting signatures (~25% as of Feb 2026). NOT yet law. Applies to CA residents as of Jan 1, 2026. Would raise an estimated $100B. Does NOT apply to people who left before Jan 1, 2026.<br><br>
+        <b>CA Income Tax:</b> Top marginal rate 13.3% (12.3% + 1% Mental Health Surcharge on income >$1M). Capital gains taxed as ordinary income — no preferential rate. No state exit tax, but FTB aggressively audits residency claims.<br><br>
+        <b>IRS Migration Data (2020–2022):</b> $102B in net AGI left California. Top destinations: Texas (+$14B), Nevada (+$10B), Florida (+$8B), Arizona (+$7B). Source: IRS SOI, cited by CA Legislative Analyst's Office.<br><br>
+        <b>Population:</b> -1.46M net domestic outmigration (2020–2024, Census/CA DoF). CA has had negative net domestic migration every year since ~2001. International immigration partially offsets but has declined.
       </p>
     </div>
   `;
@@ -2234,9 +2237,9 @@ function renderTaxCalc() {
       <td class="money">${fmt(tot10)}</td></tr></tbody>
     </table>
     <p style="font-size:9px;color:var(--text3);margin-top:10px;line-height:1.4;">
-      * One-time 5% wealth tax on NW exceeding $1B (proposed CA Billionaire Tax Act, not yet passed)<br>
-      ** Assumes 2% annual income yield on net worth × 13.3% CA top marginal rate<br>
-      All figures are estimates based on reported net worth at time of departure.
+      * Proposed one-time 5% wealth tax on NW exceeding $1B (Initiative 25-0024A1, collecting signatures — NOT law)<br>
+      ** Conservative est.: 2% annual income yield on net worth × 13.3% CA top marginal rate (12.3% + 1% Mental Health Surcharge). CA taxes capital gains as ordinary income.<br>
+      All figures are estimates. Net worth from Bloomberg/Forbes. Actual tax savings depend on income mix, asset type, and timing of liquidity events.
     </p>
   `;
 }
@@ -2332,7 +2335,7 @@ function openStatCards() {
     { stat:'$224M', text:'Google\'s co-founders Larry Page and Sergey Brin spent $224M on Miami mansions to avoid a potential $25B+ wealth tax bill.' },
     { stat:'$170M', text:'Mark Zuckerberg\'s Indian Creek Island estate — the most expensive home sale in Miami-Dade history. CA loses ~$11B one-time + $300M/year from his departure alone.' },
     { stat:'145 yrs', text:'Chevron was born in California in 1879. After 145 years, it\'s moving HQ to Houston. "CA energy policies raise costs, hurt consumers."' },
-    { stat:fmt(totalTax), text:'Estimated one-time wealth tax the departed billionaires would have owed under the CA Billionaire Tax Act (5% on NW over $1B).' },
+    { stat:fmt(totalTax), text:'Estimated one-time wealth tax the departed billionaires would have owed under the PROPOSED CA Billionaire Tax Act (Initiative 25-0024A1, 5% on NW over $1B). Not yet law — still collecting signatures.' },
     { stat:'-1.46M', text:'Net domestic outmigration from California, 2020–2024. That\'s like the entire city of San Antonio leaving.' },
     { stat:'$102B', text:'Adjusted gross income that left California via migration (IRS data, 2020–2022). Top destination: Texas (+$14B).' },
     { stat:'HP Garage', text:'HP Inc. — the company whose garage IS the "birthplace of Silicon Valley" — moved its HQ to Houston, Texas in 2022.' },
@@ -2555,7 +2558,7 @@ function showReceipt(id) {
     <div class="r-line"><span>New State Tax Rate</span><span class="r-val" style="color:#4caf50;">0%</span></div>
     <div class="r-line"><span>Est. Annual Income (2% yield)</span><span class="r-val">${fmt(annualIncome)}</span></div>
     <div class="r-line"><span>Annual CA Tax Avoided</span><span class="r-val">${fmt(annualTaxSaved)}/yr</span></div>
-    <div class="r-line"><span>One-Time Wealth Tax (5%)</span><span class="r-val">${fmt(wealthTax)}</span></div>
+    <div class="r-line"><span>Proposed Wealth Tax (5%)*</span><span class="r-val">${fmt(wealthTax)}</span></div>
     <div class="r-line"><span>10-Year Tax Savings</span><span class="r-val">${fmt(tenYearSavings)}</span></div>
 
     <div class="r-line r-total">
@@ -2565,7 +2568,7 @@ function showReceipt(id) {
 
     <div class="r-footer">
       <div class="r-stamp">DEPARTED</div>
-      <div style="margin-top:8px;">EXODUS.tracker · Verified from Bloomberg, Forbes, IRS</div>
+      <div style="margin-top:8px;">EXODUS.tracker · Bloomberg, Forbes, IRS · *Wealth tax is proposed, not law</div>
       <div>jordandavisbiz.github.io/california-exodus-tracker</div>
     </div>
   </div>`;
@@ -2631,7 +2634,7 @@ function downloadReceipt() {
     ['New State Tax Rate','0%'],
     ['Est. Annual Income',fmt(d.nw*0.02)],
     ['Annual CA Tax Avoided',fmt(annualTaxSaved)+'/yr'],
-    ['One-Time Wealth Tax (5%)',fmt(wealthTax)],
+    ['Proposed Wealth Tax (5%)*',fmt(wealthTax)],
     ['10-Year Tax Savings',fmt(annualTaxSaved*10)],
   ];
 
