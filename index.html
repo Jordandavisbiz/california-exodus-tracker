@@ -499,35 +499,42 @@
     /* Detail panel as slide-up drawer on mobile */
     .rpanel {
       position: fixed !important; bottom: 0; left: 0; right: 0;
-      height: 0; max-height: 85vh;
+      height: 0;
       border-top: 2px solid var(--accent) !important;
       border-radius: 16px 16px 0 0;
       z-index: 300;
       transition: height 0.3s ease;
       overflow: hidden;
       background: var(--bg2);
+      display: flex !important; flex-direction: column;
     }
     .rpanel.open {
       height: 80vh;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      overscroll-behavior: contain;
     }
-    .rpanel .rp-body {
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      max-height: calc(80vh - 90px);
-      padding-bottom: 40px;
-    }
-    .rpanel .rp-tabs { overflow-x: auto; position: sticky; top: 0; z-index: 2; background: var(--bg2); }
-    .rp-tab { padding: 8px 8px; font-size: 9px; white-space: nowrap; }
     .rpanel .drawer-handle {
       display: block !important;
-      position: sticky; top: 0; z-index: 3;
+      flex-shrink: 0;
       background: var(--bg2);
     }
-    /* Lock body scroll when drawer is open */
-    body.drawer-open { overflow: hidden; touch-action: none; }
+    .rpanel .rp-tabs {
+      flex-shrink: 0;
+      overflow-x: auto;
+      background: var(--bg2);
+    }
+    .rp-tab { padding: 8px 8px; font-size: 9px; white-space: nowrap; }
+    .rpanel .rp-body {
+      flex: 1;
+      overflow-y: scroll !important;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      padding-bottom: 60px;
+    }
+    /* Lock background when drawer is open */
+    body.drawer-open {
+      overflow: hidden !important;
+      position: fixed;
+      width: 100%;
+    }
 
     /* Stat cards modal */
     .stat-cards-grid { grid-template-columns: 1fr; }
@@ -1692,15 +1699,18 @@ function renderCards(filter, search) {
   }).join('');
 }
 
+let savedScrollY = 0;
 function openDrawer() {
-  const rp = document.getElementById('rpanel');
-  rp.classList.add('open');
+  savedScrollY = window.scrollY;
+  document.body.style.top = `-${savedScrollY}px`;
   document.body.classList.add('drawer-open');
+  document.getElementById('rpanel').classList.add('open');
 }
 function closeDrawer() {
-  const rp = document.getElementById('rpanel');
-  rp.classList.remove('open');
+  document.getElementById('rpanel').classList.remove('open');
   document.body.classList.remove('drawer-open');
+  document.body.style.top = '';
+  window.scrollTo(0, savedScrollY);
 }
 
 function sel(id) {
