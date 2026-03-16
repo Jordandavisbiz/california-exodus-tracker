@@ -1658,20 +1658,22 @@ function renderMarkers() {
     grp.cy = grp.ys.reduce((a,b)=>a+b,0) / grp.ys.length;
   });
 
-  // Layout constants (small so they don't obscure the map)
-  const R   = 12;    // circle radius for people
-  const coW = 30;    // company logo rect width
-  const coH = 15;    // company logo rect height
-  const gap = 28;    // horizontal spacing between marker centers
-  const rowH = 28;   // vertical spacing between rows
+  // Layout constants
+  const R   = 10;    // circle radius for people
+  const coW = 28;    // company logo rect width
+  const coH = 14;    // company logo rect height
+  const pGap = 24;   // horizontal spacing between people
+  const cGap = 32;   // horizontal spacing between company logos
+  const pRowH = 24;  // vertical spacing between people rows
+  const cRowH = 18;  // vertical spacing between company rows
 
   Object.values(groups).forEach(grp => {
     const ppl = grp.items.filter(d => d.type !== 'company').sort((a,b) => b.nw - a.nw);
     const cos = grp.items.filter(d => d.type === 'company').sort((a,b) => b.nw - a.nw);
 
-    // People on top rows, companies below; grid starts just below the metro center
-    const pCols = ppl.length > 0 ? Math.min(Math.ceil(ppl.length / 2), ppl.length) : 1;
-    const cCols = cos.length  > 0 ? Math.min(3, cos.length) : 1;
+    // People: max 4 per row for readability
+    const pCols = ppl.length > 0 ? Math.min(4, ppl.length) : 1;
+    const cCols = cos.length  > 0 ? Math.min(4, cos.length) : 1;
     const pRows = ppl.length > 0 ? Math.ceil(ppl.length / pCols) : 0;
     const secGap = (ppl.length && cos.length) ? 6 : 0;
 
@@ -1683,8 +1685,8 @@ function renderMarkers() {
       const col = i % pCols;
       // Center each row independently
       const rowCount = (row < pRows - 1) ? pCols : (ppl.length - row * pCols);
-      const mx = grp.cx + (col - (rowCount - 1) / 2) * gap;
-      const my = yStart + row * rowH;
+      const mx = grp.cx + (col - (rowCount - 1) / 2) * pGap;
+      const my = yStart + row * pRowH;
 
       const clipId = 'clip-' + d.id;
 
@@ -1724,15 +1726,15 @@ function renderMarkers() {
         .on('click', () => sel(d.id));
     });
 
-    yStart += pRows * rowH + secGap;
+    yStart += pRows * pRowH + secGap;
 
     // ── Companies: white rect with contained logo image ──
     cos.forEach((d, i) => {
       const row = Math.floor(i / cCols);
       const col = i % cCols;
       const rowCount = (row < Math.ceil(cos.length / cCols) - 1) ? cCols : (cos.length - row * cCols);
-      const mx = grp.cx + (col - (rowCount - 1) / 2) * gap;
-      const my = yStart + row * rowH;
+      const mx = grp.cx + (col - (rowCount - 1) / 2) * cGap;
+      const my = yStart + row * cRowH;
 
       // White background rect
       const rect = mg.append('rect')
