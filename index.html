@@ -1695,7 +1695,7 @@ function renderMarkers() {
         .attr('cx', mx).attr('cy', my).attr('r', R)
         .attr('fill', '#1c1c2b')
         .attr('stroke', d.color || '#ff6b35')
-        .attr('stroke-width', 1.5)
+        .attr('stroke-width', 0.5)
         .attr('class', 'hm')
         .attr('data-id', d.id)
         .style('cursor', 'pointer');
@@ -1739,13 +1739,13 @@ function renderMarkers() {
         .attr('rx', 3)
         .attr('fill', '#ffffff')
         .attr('stroke', d.color || '#ff6b35')
-        .attr('stroke-width', 1)
+        .attr('stroke-width', 0.5)
         .attr('class', 'hm')
         .attr('data-id', d.id)
         .style('cursor', 'pointer');
 
       if (d.img) {
-        const pad = 2;
+        const pad = 0.5;
         mg.append('image')
           .attr('href', d.img)
           .attr('x', mx - coW/2 + pad).attr('y', my - coH/2 + pad)
@@ -2102,7 +2102,7 @@ function sel(id) {
       m.setAttribute('stroke-width', '3');
       m.setAttribute('stroke', '#fff');
     } else {
-      m.setAttribute('stroke-width', m.tagName === 'rect' ? '1' : '1.5');
+      m.setAttribute('stroke-width', '0.5');
       m.setAttribute('stroke', '');
     }
   });
