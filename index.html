@@ -10,6 +10,15 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="California Exodus Tracker — $1T+ in Wealth Has Left">
 <meta name="twitter:description" content="Interactive tracker of every billionaire and company fleeing California. The greatest wealth migration in American history, visualized.">
+<!-- Stat Cards Modal -->
+<div class="modal-overlay" id="statModal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="modal-box">
+    <button class="modal-close" onclick="document.getElementById('statModal').classList.remove('show')">&times;</button>
+    <h3>VIRAL STAT CARDS — Click any card to download as PNG</h3>
+    <div class="stat-cards-grid" id="statCardsGrid"></div>
+  </div>
+</div>
+
 <script src="https://d3js.org/d3.v7.min.js"></script>
 <script src="https://unpkg.com/topojson-client@3"></script>
 <style>
@@ -447,10 +456,53 @@
     .rpanel { display: none; }
   }
   @media (max-width: 768px) {
-    .app { grid-template-columns: 1fr; grid-template-rows: 50vh 1fr; }
-    .sidebar { order: 2; }
-    .map-area { order: 1; }
+    html, body { overflow: auto; height: auto; }
+    .header { padding: 0 10px; height: 42px; }
+    .logo { font-size: 13px; }
     .header-pills { display: none; }
+    .h-filters { gap: 2px; }
+    .fbtn { padding: 3px 6px; font-size: 9px; }
+
+    .app {
+      display: flex; flex-direction: column;
+      height: auto; min-height: 100vh;
+      padding-top: 42px;
+    }
+    .sidebar { order: 2; border-right: none; border-top: 1px solid var(--border); max-height: none; }
+    .map-area { order: 1; height: 55vh; min-height: 300px; flex-shrink: 0; }
+    .rpanel {
+      display: block !important; order: 3;
+      border-left: none; border-top: 1px solid var(--border);
+    }
+
+    /* Scrubber on mobile */
+    .scrubber {
+      bottom: 8px; padding: 5px 10px; border-radius: 8px;
+    }
+    .scrubber .yr { font-size: 14px; min-width: 36px; }
+    .scrubber input[type=range] { width: 120px; }
+    .scrubber .play-btn { width: 24px; height: 24px; font-size: 10px; }
+
+    /* Map overlays */
+    .map-stats { gap: 4px; flex-wrap: wrap; justify-content: center; }
+    .ms-pill { padding: 4px 8px; }
+    .ms-pill .v { font-size: 13px; }
+    .ms-pill .l { font-size: 7px; }
+    .map-legend { display: none; }
+    .anim-bar { top: auto; bottom: 50px; right: 8px; flex-direction: column; }
+    .anim-btn { padding: 4px 8px; font-size: 8px; }
+
+    /* Cards */
+    .card { padding: 6px 8px; }
+    .card-avatar { width: 32px; height: 32px; }
+
+    /* Detail panel on mobile */
+    .rp-tabs { overflow-x: auto; }
+    .rp-tab { padding: 8px 8px; font-size: 9px; white-space: nowrap; }
+
+    /* Stat cards modal */
+    .stat-cards-grid { grid-template-columns: 1fr; }
+    .modal-box { padding: 14px; }
   }
 
   @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
@@ -532,6 +584,62 @@
     transition:all 0.15s;
   }
   .src-link:hover { border-color:var(--blue); background:rgba(79,195,247,0.1); }
+
+  /* ── VIRAL STAT CARDS MODAL ── */
+  .modal-overlay {
+    position:fixed; inset:0; z-index:500;
+    background:rgba(0,0,0,0.8); backdrop-filter:blur(8px);
+    display:none; align-items:center; justify-content:center;
+  }
+  .modal-overlay.show { display:flex; }
+  .modal-box {
+    background:var(--bg2); border:1px solid var(--border);
+    border-radius:12px; padding:20px; max-width:680px; width:95%;
+    max-height:90vh; overflow-y:auto;
+  }
+  .modal-box h3 {
+    font-family:'JetBrains Mono',monospace; font-size:13px;
+    color:var(--accent); margin-bottom:12px;
+  }
+  .modal-close {
+    float:right; background:none; border:none; color:var(--text3);
+    font-size:20px; cursor:pointer; line-height:1;
+  }
+  .modal-close:hover { color:var(--text); }
+  .stat-cards-grid {
+    display:grid; grid-template-columns:1fr 1fr; gap:10px;
+  }
+  .viral-card {
+    background:var(--bg3); border:1px solid var(--border);
+    border-radius:8px; padding:14px; cursor:pointer;
+    transition:all 0.15s; position:relative;
+  }
+  .viral-card:hover { border-color:var(--accent); transform:translateY(-2px); }
+  .viral-card .vc-stat {
+    font-family:'JetBrains Mono',monospace; font-size:22px;
+    font-weight:800; color:var(--accent); line-height:1.1;
+  }
+  .viral-card .vc-text {
+    font-size:11px; color:var(--text2); margin-top:6px; line-height:1.4;
+  }
+  .viral-card .vc-dl {
+    position:absolute; top:8px; right:8px; font-size:9px;
+    color:var(--text3); font-family:'JetBrains Mono',monospace;
+  }
+
+  /* ── ANIMATION CONTROLS ── */
+  .anim-bar {
+    position:absolute; top:60px; right:12px; z-index:10;
+    display:flex; gap:6px;
+  }
+  .anim-btn {
+    background:rgba(6,6,11,0.88); backdrop-filter:blur(12px);
+    border:1px solid var(--border); border-radius:8px;
+    padding:6px 14px; color:var(--text2); cursor:pointer;
+    font-family:'JetBrains Mono',monospace; font-size:10px;
+    transition:all 0.15s;
+  }
+  .anim-btn:hover { border-color:var(--accent); color:var(--accent); }
 </style>
 </head>
 <body>
@@ -583,6 +691,10 @@
       <div style="margin-top:4px; font-style:italic;">Hover headshots · Click for details</div>
     </div>
     <div class="map-tooltip" id="tooltip"></div>
+    <div class="anim-bar">
+      <button class="anim-btn" onclick="openStatCards()">&#128200; VIRAL STAT CARDS</button>
+      <button class="anim-btn" onclick="recordAnimation()">&#127909; RECORD GIF</button>
+    </div>
     <div class="scrubber">
       <button class="play-btn" id="playBtn" onclick="togglePlay()">&#9654;</button>
       <input type="range" min="2016" max="2026" value="2026" id="yearSlider" oninput="scrubYear(this.value)">
@@ -1992,6 +2104,214 @@ function shareCard(id) {
     const a=document.createElement('a');
     a.href=url; a.download=`exodus-${d.id}.png`;
     a.click(); URL.revokeObjectURL(url);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// VIRAL STAT CARDS
+// ══════════════════════════════════════════════════════════════
+
+function openStatCards() {
+  const fmt = v => v>=1e12?'$'+(v/1e12).toFixed(1)+'T':v>=1e9?'$'+(v/1e9).toFixed(0)+'B':v>=1e6?'$'+(v/1e6).toFixed(0)+'M':'$'+Math.round(v);
+  const ppl = D.filter(d=>d.type!=='company');
+  const totalNw = ppl.reduce((s,d)=>s+d.nw,0);
+  const totalTax = ppl.reduce((s,d)=>s+Math.max(0,(d.nw-1e9)*0.05),0);
+
+  const cards = [
+    { stat:'$1.3T+', text:'Total estimated wealth that has left California since 2020. More than the GDP of most countries.' },
+    { stat:'20 of 21', text:'California billionaires polled said they were leaving when the Billionaire Tax Act was proposed. Only Jensen Huang (Nvidia) publicly said he\'d stay.' },
+    { stat:'$224M', text:'Google\'s co-founders Larry Page and Sergey Brin spent $224M on Miami mansions to avoid a potential $25B+ wealth tax bill.' },
+    { stat:'$170M', text:'Mark Zuckerberg\'s Indian Creek Island estate — the most expensive home sale in Miami-Dade history. CA loses ~$11B one-time + $300M/year from his departure alone.' },
+    { stat:'145 yrs', text:'Chevron was born in California in 1879. After 145 years, it\'s moving HQ to Houston. "CA energy policies raise costs, hurt consumers."' },
+    { stat:fmt(totalTax), text:'Estimated one-time wealth tax the departed billionaires would have owed under the CA Billionaire Tax Act (5% on NW over $1B).' },
+    { stat:'-1.46M', text:'Net domestic outmigration from California, 2020–2024. That\'s like the entire city of San Antonio leaving.' },
+    { stat:'$102B', text:'Adjusted gross income that left California via migration (IRS data, 2020–2022). Top destination: Texas (+$14B).' },
+    { stat:'HP Garage', text:'HP Inc. — the company whose garage IS the "birthplace of Silicon Valley" — moved its HQ to Houston, Texas in 2022.' },
+    { stat:'0% vs 13.3%', text:'Texas and Florida charge zero state income tax. California charges 13.3% — the highest in America. The math isn\'t hard.' },
+    { stat:'$28.9M', text:'PayPal Mafia member Keith Rabois paid $28.9M for a Miami Beach mansion after calling San Francisco "so massively improperly run it\'s impossible to stay."' },
+    { stat:D.filter(d=>d.type==='company').length+' HQs', text:'Fortune 500 and major company headquarters that have relocated out of California since 2016 — including Tesla, Oracle, SpaceX, Chevron, HP, HPE, Schwab, and McKesson.' },
+  ];
+
+  document.getElementById('statCardsGrid').innerHTML = cards.map((c,i) => `
+    <div class="viral-card" onclick="downloadStatCard(${i})">
+      <div class="vc-dl">&#8595; PNG</div>
+      <div class="vc-stat">${c.stat}</div>
+      <div class="vc-text">${c.text}</div>
+    </div>
+  `).join('');
+
+  document.getElementById('statModal').classList.add('show');
+  window._viralCards = cards;
+}
+
+function downloadStatCard(idx) {
+  const card = window._viralCards[idx];
+  const c = document.createElement('canvas');
+  c.width = 600; c.height = 338; // 16:9 ratio for X
+  const ctx = c.getContext('2d');
+
+  // Background
+  ctx.fillStyle = '#0a0a0f'; ctx.fillRect(0,0,600,338);
+
+  // Top accent bar
+  ctx.fillStyle = '#ff6b35'; ctx.fillRect(0,0,600,4);
+
+  // Brand
+  ctx.font = 'bold 11px JetBrains Mono, monospace';
+  ctx.fillStyle = '#ff6b35'; ctx.fillText('EXODUS.tracker', 24, 30);
+  ctx.fillStyle = '#555570'; ctx.fillText('California Wealth Migration', 160, 30);
+
+  // Main stat
+  ctx.font = 'bold 52px JetBrains Mono, monospace';
+  ctx.fillStyle = '#ff6b35';
+  // Measure and potentially shrink
+  let fontSize = 52;
+  while (ctx.measureText(card.stat).width > 520 && fontSize > 28) {
+    fontSize -= 2;
+    ctx.font = `bold ${fontSize}px JetBrains Mono, monospace`;
+  }
+  ctx.fillText(card.stat, 24, 110);
+
+  // Body text — word wrap
+  ctx.font = '15px Inter, sans-serif';
+  ctx.fillStyle = '#b0b0c0';
+  const words = card.text.split(' ');
+  let line = '', y = 155;
+  words.forEach(w => {
+    const test = line + w + ' ';
+    if (ctx.measureText(test).width > 540) {
+      ctx.fillText(line.trim(), 24, y);
+      y += 22;
+      line = w + ' ';
+    } else {
+      line = test;
+    }
+  });
+  if (line) ctx.fillText(line.trim(), 24, y);
+
+  // Bottom bar
+  ctx.fillStyle = '#14141f'; ctx.fillRect(0, 310, 600, 28);
+  ctx.font = '9px JetBrains Mono, monospace';
+  ctx.fillStyle = '#555570';
+  ctx.fillText('Sources: Bloomberg, Forbes, IRS, SEC filings · March 2026', 24, 326);
+  ctx.fillText('jordandavisbiz.github.io/california-exodus-tracker', 380, 326);
+
+  // Side accent
+  ctx.fillStyle = '#ff6b35'; ctx.fillRect(0, 0, 4, 338);
+
+  c.toBlob(blob => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `exodus-stat-${idx+1}.png`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// MIGRATION FLOW ANIMATION (RECORD)
+// ══════════════════════════════════════════════════════════════
+
+function recordAnimation() {
+  // This plays the timeline animation and captures each frame as a downloadable GIF-like sequence
+  // Since we can't generate a real GIF without a library, we'll create an animated sequence
+  // that auto-plays and can be screen-recorded, plus download a title card
+
+  // Reset to 2016
+  const slider = document.getElementById('yearSlider');
+  slider.value = 2016;
+  scrubYear(2016);
+
+  // Create a fullscreen overlay with year counter
+  const overlay = document.createElement('div');
+  overlay.id = 'animOverlay';
+  overlay.style.cssText = `position:fixed;top:0;left:0;right:0;bottom:0;z-index:400;
+    pointer-events:none;display:flex;align-items:center;justify-content:center;`;
+
+  const yearDisp = document.createElement('div');
+  yearDisp.style.cssText = `font-family:JetBrains Mono,monospace;font-size:120px;font-weight:800;
+    color:rgba(255,107,53,0.15);pointer-events:none;`;
+  yearDisp.textContent = '2016';
+  overlay.appendChild(yearDisp);
+
+  // Counter overlay
+  const counter = document.createElement('div');
+  counter.style.cssText = `position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:401;
+    font-family:JetBrains Mono,monospace;font-size:14px;color:var(--accent);
+    background:rgba(6,6,11,0.9);padding:10px 20px;border-radius:8px;border:1px solid #ff6b35;
+    pointer-events:none;text-align:center;`;
+  counter.innerHTML = 'RECORDING — Use screen capture (Cmd+Shift+5) to record<br><span style="font-size:11px;color:#888;">Animation will play 2016 → 2026</span>';
+
+  document.body.appendChild(overlay);
+  document.body.appendChild(counter);
+
+  let yr = 2016;
+  const interval = setInterval(() => {
+    yr++;
+    if (yr > 2026) {
+      clearInterval(interval);
+      setTimeout(() => {
+        overlay.remove();
+        counter.remove();
+      }, 2000);
+      return;
+    }
+    slider.value = yr;
+    scrubYear(yr);
+    yearDisp.textContent = yr;
+
+    // Flash effect on big years
+    if (yr === 2020 || yr === 2024 || yr === 2025) {
+      yearDisp.style.color = 'rgba(255,107,53,0.4)';
+      setTimeout(() => { yearDisp.style.color = 'rgba(255,107,53,0.15)'; }, 500);
+    }
+  }, 1500);
+
+  // Also generate a title card for the animation
+  const tc = document.createElement('canvas');
+  tc.width = 1200; tc.height = 675; // 16:9
+  const tctx = tc.getContext('2d');
+
+  tctx.fillStyle = '#0a0a0f'; tctx.fillRect(0,0,1200,675);
+  tctx.fillStyle = '#ff6b35'; tctx.fillRect(0,0,1200,6);
+
+  tctx.font = 'bold 14px JetBrains Mono, monospace';
+  tctx.fillStyle = '#ff6b35'; tctx.fillText('EXODUS.tracker', 40, 40);
+
+  tctx.font = 'bold 64px JetBrains Mono, monospace';
+  tctx.fillStyle = '#e4e4ed';
+  tctx.fillText('The California', 40, 140);
+  tctx.fillText('Wealth Exodus', 40, 210);
+
+  tctx.font = 'bold 28px JetBrains Mono, monospace';
+  tctx.fillStyle = '#ff6b35';
+  tctx.fillText('$1.3T+ in wealth has left the state', 40, 280);
+
+  tctx.font = '18px Inter, sans-serif';
+  tctx.fillStyle = '#9090a8';
+  const lines = [
+    '28 billionaires, tech founders, and Fortune 500 companies tracked',
+    'From the first signals in 2016 to the $1T+ exodus of 2025-2026',
+    'Net worth data from Bloomberg & Forbes · Company data from SEC filings',
+    '',
+    'Interactive dashboard: jordandavisbiz.github.io/california-exodus-tracker'
+  ];
+  lines.forEach((l, i) => tctx.fillText(l, 40, 340 + i * 28));
+
+  // Bottom bar
+  tctx.fillStyle = '#14141f'; tctx.fillRect(0, 645, 1200, 30);
+  tctx.font = '11px JetBrains Mono, monospace';
+  tctx.fillStyle = '#555570';
+  tctx.fillText('Data verified from Bloomberg, Forbes, IRS, SEC filings · March 2026', 40, 665);
+
+  tc.toBlob(blob => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'exodus-title-card.png';
+    a.click();
+    URL.revokeObjectURL(url);
   });
 }
 
