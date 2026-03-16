@@ -1115,6 +1115,49 @@ const D = [
     color:'#ff6b35'
   },
 
+  {
+    id:'calacanis', name:'Jason Calacanis', role:'Angel Investor / All-In Podcast',
+    type:'vc', nw:200e6, nwLabel:'~$200M', nwSource:'Est. (no Forbes/Bloomberg tracking)',
+    fromCity:'San Francisco', fromSt:'CA', fLat:37.77, fLng:-122.42,
+    toCity:'Austin', toSt:'TX', tLat:30.27, tLng:-97.74,
+    date:'2024-06', dateLabel:'Mid-2024 (self-confirmed Apr 2025)', confirmed:true,
+    reasons:['Taxes','Community','All-In Podcast Network'],
+    bg:'Prolific angel investor. Early Uber investor ($25K→$100M+). All-In Podcast co-host. Founded LAUNCH. Confirmed Austin move via Threads post: "Since we moved to Austin last year, we decided to rent or sell our huge loft in San Francisco."',
+    quotes:[],
+    investments:['LAUNCH Fund','Uber (early investor)','Calm','Robinhood'],
+    img:'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Jason_Calacanis_at_LAUNCH_Festival_2016_%28cropped%29.jpg/400px-Jason_Calacanis_at_LAUNCH_Festival_2016_%28cropped%29.jpg',
+    color:'#b388ff',
+    sources:[{label:'Threads Post',url:'https://www.threads.com/@jason/post/DIMktcxNlhH/'},{label:'Apple Podcasts',url:'#'}]
+  },
+  {
+    id:'friedberg', name:'David Friedberg', role:'CEO, The Production Board / All-In Podcast',
+    type:'vc', nw:1e9, nwLabel:'~$1B', nwSource:'Est.',
+    fromCity:'San Francisco', fromSt:'CA', fLat:37.77, fLng:-122.42,
+    toCity:'Austin', toSt:'TX', tLat:30.27, tLng:-97.74,
+    date:'2024-06', dateLabel:'~2024', confirmed:true,
+    reasons:['Taxes','Business Climate','All-In Network'],
+    bg:'Founder and CEO of The Production Board (climate/food tech holding company). All-In Podcast co-host ("The Sultan of Science"). Former Climate Corp CEO (sold to Monsanto for $1.1B). Confirmed investing "from Austin" on podcast.',
+    quotes:[],
+    investments:['The Production Board','Climate Corp (former)','Ohalo Genetics'],
+    img:null,
+    color:'#b388ff',
+    sources:[{label:'Apple Podcasts',url:'https://podcasts.apple.com/us/podcast/investing-from-austin-with-jcal/id1446779826?i=1000675925376'}]
+  },
+  {
+    id:'fang', name:'Andy Fang', role:'Co-Founder & CTO, DoorDash',
+    type:'person', nw:1.5e9, nwLabel:'~$1.5B', nwSource:'Forbes est.',
+    fromCity:'San Francisco', fromSt:'CA', fLat:37.77, fLng:-122.42,
+    toCity:'TBD', toSt:'TBD', tLat:30.27, tLng:-97.74,
+    date:'2025-12', dateLabel:'Late 2025 (planning exit)', confirmed:false,
+    reasons:['CA Billionaire Tax Act'],
+    bg:'Co-founded DoorDash. Publicly announced plans to leave California in response to proposed wealth tax. Destination not yet confirmed. DoorDash remains headquartered in SF.',
+    quotes:["Stupid wealth tax proposals... make it irresponsible for me not to plan leaving the state."],
+    investments:['DoorDash (co-founder)'],
+    img:null,
+    color:'#4fc3f7',
+    sources:[{label:'Andy Fang on X',url:'https://x.com/andyfang/status/2010418126610186585'}]
+  },
+
   // ── COMPANIES (CONFIRMED HQ MOVES) ──
   {
     id:'spacex', name:'SpaceX', role:'Aerospace · Val: ~$800B',
@@ -1284,6 +1327,34 @@ const D = [
     investments:[],
     img:'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/Jacobs_Engineering_Group_logo.svg/400px-Jacobs_Engineering_Group_logo.svg.png',
     color:'#ff6b35'
+  },
+  {
+    id:'publicstorage', name:'Public Storage', role:'Self-Storage REIT · Rev: ~$4.1B',
+    type:'company', nw:4.1e9, nwLabel:'$4.1B rev', nwSource:'FY2024',
+    fromCity:'Glendale', fromSt:'CA', fLat:34.14, fLng:-118.26,
+    toCity:'Frisco', toSt:'TX', tLat:33.15, tLng:-96.82,
+    date:'2025-02', dateLabel:'February 2025', confirmed:true,
+    reasons:['Cost','Talent','CEO Succession'],
+    bg:'Largest self-storage REIT in the world. Announced HQ relocation from Glendale, CA to Frisco, TX (DFW area) in Feb 2025.',
+    quotes:[],
+    investments:[],
+    img:null,
+    color:'#ff6b35',
+    sources:[{label:'Fox Business',url:'https://www.foxbusiness.com/markets/public-storage-relocates-headquarters-from-california-texas'}]
+  },
+  {
+    id:'playboy', name:'Playboy / PLBY Group', role:'Media & Lifestyle',
+    type:'company', nw:100e6, nwLabel:'~$100M rev', nwSource:'Est.',
+    fromCity:'Los Angeles', fromSt:'CA', fLat:34.05, fLng:-118.24,
+    toCity:'Miami Beach', toSt:'FL', tLat:25.79, tLng:-80.13,
+    date:'2025-08', dateLabel:'August 2025', confirmed:true,
+    reasons:['Anti-Business Climate','Regulation','Cost'],
+    bg:'Playboy Enterprises / PLBY Group announced HQ move from LA to Miami Beach. CEO Ben Kohn publicly criticized California.',
+    quotes:["California is anti-business and a very difficult place to do business as an employer. — CEO Ben Kohn"],
+    investments:[],
+    img:null,
+    color:'#ff6b35',
+    sources:[{label:'Fox Business',url:'https://www.foxbusiness.com/media/playboy-ceo-calls-california-anti-business-company-flees-miami-beach-new-headquarters'}]
   },
 ];
 
@@ -1539,7 +1610,7 @@ function getMetro(city, st) {
   // Merge nearby cities into metro areas
   const metros = {
     'Austin,TX':['Austin','Bastrop'],
-    'DFW,TX':['Dallas','Irving','Westlake'],
+    'DFW,TX':['Dallas','Irving','Westlake','Frisco'],
     'Starbase,TX':['Starbase'],
     'Houston,TX':['Houston'],
     'Miami,FL':['Miami','Miami Beach','Coconut Grove','Indian Creek','South Florida'],
