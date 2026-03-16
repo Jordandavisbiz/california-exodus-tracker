@@ -1631,21 +1631,14 @@ function renderMarkers() {
 
   const t = currentTransform;
 
-  // The SVG might be rendered at a different size than mapW/mapH
-  // due to flex/grid layout. Get the actual rendered size and scale.
-  const svgEl = document.getElementById('mapSvg');
-  const svgRect = svgEl.getBoundingClientRect();
-  const scaleX = svgRect.width / mapW;
-  const scaleY = svgRect.height / mapH;
-
-  // Group by metro, collect all positions to average for center
+  // Simple: projection gives SVG coords, zoom transform gives screen coords
+  // Markers layer is same size as SVG, so coords match directly
   const groups = {};
   D.forEach(d => {
     const p = projection([d.tLng, d.tLat]);
     if (!p) return;
-    // Apply zoom transform, then scale to actual rendered size
-    const tx = t.applyX(p[0]) * scaleX;
-    const ty = t.applyY(p[1]) * scaleY;
+    const tx = t.applyX(p[0]);
+    const ty = t.applyY(p[1]);
     const metro = getMetro(d.toCity, d.toSt);
     if (!groups[metro]) groups[metro] = { xs:[], ys:[], items:[] };
     groups[metro].xs.push(tx);
@@ -2813,8 +2806,8 @@ renderTaxCalc();
 animateWealth();
 initScoreboard();
 
-// Init map (async — fetches TopoJSON)
-renderMap();
+// Init map AFTER layout is complete so container dimensions are correct
+requestAnimationFrame(() => { requestAnimationFrame(() => { renderMap(); }); });
 </script>
 </body>
 </html>
