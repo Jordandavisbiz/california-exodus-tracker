@@ -1672,8 +1672,8 @@ function renderMarkers() {
     const pRows = Math.ceil(ppl.length / pCols);
     const cRows = Math.ceil(cos.length / cCols);
     const secGap = (ppl.length && cos.length) ? 10 : 0;
-    const totalH = pRows * pRowH + cRows * cRowH + secGap;
-    let yStart = g.y - totalH / 2 + 12;
+    // Start grid BELOW the city center point (not centered on it)
+    let yStart = g.y + 16;
 
     ppl.forEach((d, i) => {
       const r = Math.floor(i / pCols), c = i % pCols;
