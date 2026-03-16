@@ -111,11 +111,17 @@
   .fbtn.on { color: var(--accent); border-color: var(--accent); background: var(--accent-dim); }
 
   /* ── LAYOUT ── */
+  .page-wrap {
+    display: flex; flex-direction: column;
+    height: 100vh;
+    padding-top: 48px; /* header height */
+  }
+  .scoreboard { flex-shrink: 0; }
   .app {
     display: grid;
     grid-template-columns: 340px 1fr 340px;
-    height: 100vh;
-    padding-top: 0;
+    flex: 1;
+    min-height: 0;
   }
 
   /* ── SIDEBAR ── */
@@ -493,10 +499,12 @@
     .h-filters { gap: 2px; }
     .fbtn { padding: 3px 6px; font-size: 9px; }
 
+    .page-wrap {
+      height: auto; padding-top: 42px;
+    }
     .app {
       display: flex; flex-direction: column;
-      height: auto; min-height: 100vh;
-      padding-top: 42px;
+      height: auto; min-height: auto;
     }
     .sidebar { order: 2; border-right: none; border-top: 1px solid var(--border); max-height: none; }
     .map-area { order: 1; height: 55vh; min-height: 300px; flex-shrink: 0; }
@@ -811,6 +819,9 @@
   </div>
 </div>
 
+<!-- PAGE WRAP -->
+<div class="page-wrap">
+
 <!-- SCOREBOARD -->
 <div class="scoreboard" id="scoreboard">
   <div class="sb-main">
@@ -895,6 +906,7 @@
     </div>
   </div>
 </div>
+</div><!-- /page-wrap -->
 
 <script>
 // ══════════════════════════════════════════════════════════════
