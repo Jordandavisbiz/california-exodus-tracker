@@ -1675,10 +1675,12 @@ function renderMarkers() {
     const coW = coSz * 1.6, coH = coSz * 0.7;
     const cCols = Math.min(4, cos.length || 1);
 
-    const pGap = pSz + 6;
-    const cGapH = coW + 8;
-    const pRowH = pSz + 6;
-    const cRowH = coH + 8;
+    // Gaps grow with zoom — this is the key to making zoom useful
+    const zoomSpread = Math.pow(t.k, 0.6);
+    const pGap = (pSz + 8) * zoomSpread;
+    const cGapH = (coW + 10) * zoomSpread;
+    const pRowH = (pSz + 8) * zoomSpread;
+    const cRowH = (coH + 10) * zoomSpread;
     const sz = pSz; // for mkMarker
     const pRows = Math.ceil(ppl.length / pCols);
     const cRows = Math.ceil(cos.length / cCols);
