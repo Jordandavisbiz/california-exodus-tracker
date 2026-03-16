@@ -1653,14 +1653,15 @@ function renderMarkers() {
     grp.cy = grp.ys.reduce((a,b)=>a+b,0) / grp.ys.length;
   });
 
-  // Layout constants
-  const R   = 10;    // circle radius for people
-  const coW = 28;    // company logo rect width
-  const coH = 14;    // company logo rect height
-  const pGap = 24;   // horizontal spacing between people
-  const cGap = 32;   // horizontal spacing between company logos
-  const pRowH = 24;  // vertical spacing between people rows
-  const cRowH = 18;  // vertical spacing between company rows
+  // Layout constants — sized relative to map scale so markers fit inside states
+  const scaleFactor = Math.min(mapW, mapH) / 600; // normalize to ~1.0
+  const R   = 6 * scaleFactor;
+  const coW = 14 * scaleFactor;
+  const coH = 7 * scaleFactor;
+  const pGap = 14 * scaleFactor;
+  const cGap = 16 * scaleFactor;
+  const pRowH = 14 * scaleFactor;
+  const cRowH = 9 * scaleFactor;
 
   Object.values(groups).forEach(grp => {
     const ppl = grp.items.filter(d => d.type !== 'company').sort((a,b) => b.nw - a.nw);
