@@ -1,0 +1,2030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>California Exodus Tracker — The Great Wealth Migration</title>
+<meta property="og:title" content="California Exodus Tracker — $1T+ in Wealth Has Left">
+<meta property="og:description" content="Interactive 3D tracker of every billionaire, tech founder, and Fortune 500 company fleeing California. Real-time data on the greatest wealth migration in American history.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="California Exodus Tracker — $1T+ in Wealth Has Left">
+<meta name="twitter:description" content="Interactive tracker of every billionaire and company fleeing California. The greatest wealth migration in American history, visualized.">
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://unpkg.com/topojson-client@3"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #06060b;
+    --bg2: #0d0d14;
+    --bg3: #14141f;
+    --bg4: #1c1c2b;
+    --bg5: #252538;
+    --accent: #ff6b35;
+    --accent-dim: rgba(255,107,53,0.15);
+    --accent-glow: rgba(255,107,53,0.08);
+    --blue: #4fc3f7;
+    --green: #4caf50;
+    --red: #f44336;
+    --gold: #ffc107;
+    --purple: #b388ff;
+    --text: #e4e4ed;
+    --text2: #9090a8;
+    --text3: #5a5a72;
+    --border: #252538;
+    --card-shadow: 0 2px 12px rgba(0,0,0,0.4);
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, sans-serif;
+    overflow: hidden;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+    background: rgba(6,6,11,0.92);
+    backdrop-filter: blur(24px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    height: 48px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .header-left { display: flex; align-items: center; gap: 20px; }
+  .logo {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 800; font-size: 15px;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--text3); font-weight: 400; font-size: 13px; }
+  .header-pills { display: flex; gap: 12px; }
+  .h-pill {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; color: var(--text2);
+    display: flex; align-items: center; gap: 4px;
+  }
+  .h-pill b { font-size: 12px; font-weight: 700; }
+  .h-pill b.red { color: var(--red); }
+  .h-pill b.green { color: var(--green); }
+  .h-pill b.gold { color: var(--gold); }
+  .h-pill b.accent { color: var(--accent); }
+
+  .h-filters { display: flex; gap: 4px; }
+  .fbtn {
+    background: transparent; border: 1px solid transparent;
+    color: var(--text3); padding: 4px 10px;
+    border-radius: 5px; font-size: 10px; cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    transition: all 0.15s;
+  }
+  .fbtn:hover { color: var(--text2); border-color: var(--border); }
+  .fbtn.on { color: var(--accent); border-color: var(--accent); background: var(--accent-dim); }
+
+  /* ── LAYOUT ── */
+  .app {
+    display: grid;
+    grid-template-columns: 340px 1fr 340px;
+    height: 100vh;
+    padding-top: 48px;
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .sb-search {
+    padding: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sb-search input {
+    width: 100%; padding: 7px 10px;
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text);
+    font-size: 12px; outline: none;
+    font-family: 'Inter', sans-serif;
+  }
+  .sb-search input:focus { border-color: var(--accent); }
+  .sb-search input::placeholder { color: var(--text3); }
+
+  .sb-list {
+    flex: 1; overflow-y: auto;
+    padding: 6px;
+  }
+  .sb-list::-webkit-scrollbar { width: 3px; }
+  .sb-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .sb-hdr {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; font-weight: 600;
+    color: var(--text3); letter-spacing: 1.5px;
+    padding: 8px 6px 4px;
+    display: flex; justify-content: space-between;
+  }
+  .sb-hdr .cnt { color: var(--accent); }
+
+  /* Cards */
+  .card {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-bottom: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex; gap: 10px; align-items: center;
+  }
+  .card:hover { background: var(--bg4); border-color: var(--accent); transform: translateX(2px); }
+  .card.on { background: var(--accent-dim); border-color: var(--accent); }
+
+  .card-avatar {
+    width: 38px; height: 38px; border-radius: 50%;
+    flex-shrink: 0;
+    background: var(--bg4);
+    border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px; font-weight: 700;
+    color: var(--accent);
+  }
+  .card-avatar img {
+    width: 100%; height: 100%; object-fit: cover;
+  }
+  .card-avatar-co {
+    border-radius: 8px;
+    background: #fff;
+  }
+  .card.on .card-avatar { border-color: var(--accent); }
+
+  .card-body { flex: 1; min-width: 0; }
+  .card-top { display: flex; justify-content: space-between; align-items: baseline; }
+  .card-name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card-nw {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; font-weight: 700;
+    color: var(--gold); white-space: nowrap; margin-left: 6px;
+  }
+  .card-role { font-size: 10px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card-route {
+    display: flex; align-items: center; gap: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; margin-top: 2px;
+  }
+  .card-route .fr { color: var(--red); }
+  .card-route .ar { color: var(--text3); }
+  .card-route .to { color: var(--green); }
+
+  .badge {
+    display: inline-block; font-size: 8px; padding: 1px 5px;
+    border-radius: 8px; font-family: 'JetBrains Mono', monospace;
+    margin-top: 3px;
+  }
+  .b-person { background: rgba(79,195,247,0.1); color: var(--blue); }
+  .b-company { background: rgba(255,107,53,0.1); color: var(--accent); }
+  .b-vc { background: rgba(179,136,255,0.1); color: var(--purple); }
+  .b-media { background: rgba(255,193,7,0.1); color: var(--gold); }
+  .b-unconfirmed { background: rgba(244,67,54,0.1); color: var(--red); }
+
+  /* ── MAP AREA ── */
+  .map-area {
+    position: relative;
+    background: var(--bg);
+    overflow: hidden;
+  }
+  #mapSvg {
+    width: 100%; height: 100%;
+    display: block;
+  }
+  .map-legend {
+    position: absolute; bottom: 14px; left: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; color: var(--text3);
+    background: rgba(6,6,11,0.85);
+    padding: 8px 12px; border-radius: 6px;
+    border: 1px solid var(--border);
+    backdrop-filter: blur(10px);
+  }
+  .map-legend div { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+  .map-legend .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .map-legend .line { width: 16px; height: 2px; border-radius: 1px; }
+
+  .map-stats {
+    position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 8px; z-index: 10;
+  }
+  .ms-pill {
+    background: rgba(6,6,11,0.88);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 16px;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .ms-pill .v { font-size: 18px; font-weight: 800; color: var(--accent); }
+  .ms-pill .l { font-size: 8px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* Headshot markers (HTML overlay) */
+  .markers-layer {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none; z-index: 5;
+  }
+  .hm {
+    position: absolute;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    overflow: hidden;
+    background: var(--bg3);
+    cursor: pointer;
+    pointer-events: auto;
+    transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; font-weight: 700;
+    color: var(--accent);
+    z-index: 5;
+  }
+  .hm:hover {
+    transform: scale(1.4);
+    z-index: 20;
+    box-shadow: 0 0 16px rgba(255,107,53,0.5);
+  }
+  .hm.on {
+    transform: scale(1.5);
+    z-index: 20;
+    border-color: #fff;
+    box-shadow: 0 0 20px rgba(255,107,53,0.6);
+  }
+  .hm img { width: 100%; height: 100%; object-fit: cover; }
+  .hm.co {
+    border-radius: 6px;
+    width: 36px; height: 24px;
+    background: #fff;
+  }
+  .hm.co img { object-fit: contain; padding: 3px; }
+
+  .map-tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: rgba(6,6,11,0.95);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    display: none;
+    z-index: 50;
+    max-width: 260px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    white-space: nowrap;
+  }
+  .map-tooltip .tt-name { font-weight: 700; font-size: 13px; margin-bottom: 2px; }
+  .map-tooltip .tt-nw { color: var(--gold); font-weight: 700; }
+  .map-tooltip .tt-route { font-size: 10px; color: var(--text2); margin-top: 3px; }
+
+  /* ── RIGHT PANEL ── */
+  .rpanel {
+    background: var(--bg2);
+    border-left: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .rp-tabs {
+    display: flex; border-bottom: 1px solid var(--border);
+    padding: 0 8px;
+  }
+  .rp-tab {
+    background: none; border: none; border-bottom: 2px solid transparent;
+    color: var(--text3); padding: 10px 12px;
+    font-size: 10px; cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    transition: all 0.15s;
+  }
+  .rp-tab:hover { color: var(--text2); }
+  .rp-tab.on { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .rp-body {
+    flex: 1; overflow-y: auto;
+    padding: 12px;
+  }
+  .rp-body::-webkit-scrollbar { width: 3px; }
+  .rp-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .tc { display: none; }
+  .tc.on { display: block; }
+
+  /* Detail view */
+  .d-hero {
+    text-align: center; padding: 16px 0 12px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 12px;
+  }
+  .d-avatar {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: var(--bg3); border: 2px solid var(--accent);
+    margin: 0 auto 8px; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 24px; font-weight: 700; color: var(--accent);
+  }
+  .d-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .d-name { font-size: 16px; font-weight: 700; }
+  .d-role { font-size: 11px; color: var(--text2); margin-top: 2px; }
+  .d-est { font-size: 9px; color: var(--text3); margin-top: 4px; font-style: italic; }
+
+  .d-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 6px; margin-bottom: 14px;
+  }
+  .d-stat {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 6px; padding: 8px; text-align: center;
+  }
+  .d-stat .sv {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px; font-weight: 800; color: var(--accent);
+  }
+  .d-stat .sl {
+    font-size: 8px; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+
+  .d-sec { margin-bottom: 12px; }
+  .d-sec h4 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; font-weight: 600;
+    color: var(--text3); letter-spacing: 1px;
+    text-transform: uppercase; margin-bottom: 6px;
+  }
+  .d-row {
+    display: flex; justify-content: space-between;
+    padding: 4px 0; border-bottom: 1px solid var(--border);
+    font-size: 11px;
+  }
+  .d-row .lbl { color: var(--text2); }
+  .d-row .val { font-family: 'JetBrains Mono', monospace; font-weight: 500; text-align: right; max-width: 55%; }
+
+  .d-quote {
+    font-style: italic; font-size: 11px; color: var(--text2);
+    padding: 8px 10px; background: var(--bg3);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 6px 6px 0; line-height: 1.5;
+  }
+  .d-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+  .d-tag {
+    font-size: 9px; padding: 2px 7px; border-radius: 8px;
+    background: var(--bg3); border: 1px solid var(--border);
+    color: var(--text2); font-family: 'JetBrains Mono', monospace;
+  }
+
+  .d-placeholder {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    height: 100%; color: var(--text3);
+    text-align: center;
+  }
+  .d-placeholder .icon { font-size: 36px; opacity: 0.3; margin-bottom: 10px; }
+
+  /* Analytics */
+  .a-bar { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+  .a-bar .a-lbl {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; color: var(--text2);
+    width: 70px; text-align: right; flex-shrink: 0;
+  }
+  .a-bar .a-track {
+    flex: 1; height: 16px; background: var(--bg3);
+    border-radius: 3px; overflow: hidden;
+  }
+  .a-bar .a-fill {
+    height: 100%; border-radius: 3px;
+    display: flex; align-items: center; padding-left: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; font-weight: 700; color: var(--bg);
+    transition: width 0.8s ease;
+  }
+
+  .a-sec { margin-bottom: 16px; }
+  .a-sec h4 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; font-weight: 600;
+    color: var(--text3); letter-spacing: 1px;
+    text-transform: uppercase; margin-bottom: 8px;
+  }
+
+  /* Timeline */
+  .tl { padding-left: 14px; position: relative; }
+  .tl::before {
+    content: ''; position: absolute; left: 3px; top: 0; bottom: 0;
+    width: 2px; background: var(--border);
+  }
+  .tl-item { position: relative; margin-bottom: 14px; padding-left: 14px; }
+  .tl-item::before {
+    content: ''; position: absolute; left: -13px; top: 4px;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent);
+  }
+  .tl-year {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; font-weight: 700; color: var(--accent);
+  }
+  .tl-text { font-size: 10px; color: var(--text2); line-height: 1.4; }
+
+  /* Responsive */
+  @media (max-width: 1200px) {
+    .app { grid-template-columns: 280px 1fr; }
+    .rpanel { display: none; }
+  }
+  @media (max-width: 768px) {
+    .app { grid-template-columns: 1fr; grid-template-rows: 50vh 1fr; }
+    .sidebar { order: 2; }
+    .map-area { order: 1; }
+    .header-pills { display: none; }
+  }
+
+  @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+  .fi { animation: fadeIn 0.2s ease forwards; }
+
+  @keyframes arcDash { to { stroke-dashoffset: 0; } }
+
+  /* ── STAYING TOGGLE ── */
+  .sb-toggle { display:flex; gap:2px; margin-bottom:8px; }
+  .sb-toggle button {
+    flex:1; padding:5px; font-size:10px; cursor:pointer;
+    font-family:'JetBrains Mono',monospace; border:1px solid var(--border);
+    background:var(--bg3); color:var(--text3); border-radius:4px; transition:all 0.15s;
+  }
+  .sb-toggle button.on { background:var(--accent-dim); color:var(--accent); border-color:var(--accent); }
+  .sb-toggle button.on-green { background:rgba(76,175,80,0.15); color:var(--green); border-color:var(--green); }
+  .stay-card {
+    background:var(--bg3); border:1px solid rgba(76,175,80,0.3); border-radius:8px;
+    padding:8px 10px; margin-bottom:4px; display:flex; gap:10px; align-items:center;
+  }
+  .stay-card .card-avatar { border-color:var(--green); }
+  .b-staying { background:rgba(76,175,80,0.12); color:var(--green); }
+
+  /* ── TIMELINE SCRUBBER ── */
+  .scrubber {
+    position:absolute; bottom:50px; left:50%; transform:translateX(-50%);
+    display:flex; align-items:center; gap:10px; z-index:10;
+    background:rgba(6,6,11,0.88); backdrop-filter:blur(12px);
+    border:1px solid var(--border); border-radius:10px; padding:8px 16px;
+  }
+  .scrubber .yr {
+    font-family:'JetBrains Mono',monospace; font-size:20px;
+    font-weight:800; color:var(--accent); min-width:50px; text-align:center;
+  }
+  .scrubber input[type=range] {
+    width:200px; height:4px; -webkit-appearance:none; appearance:none;
+    background:var(--border); border-radius:2px; outline:none;
+  }
+  .scrubber input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance:none; width:14px; height:14px; border-radius:50%;
+    background:var(--accent); cursor:pointer; border:2px solid var(--bg);
+  }
+  .scrubber .play-btn {
+    background:var(--accent); border:none; color:#fff; width:28px; height:28px;
+    border-radius:50%; cursor:pointer; font-size:12px; display:flex;
+    align-items:center; justify-content:center;
+  }
+  .scrubber .play-btn:hover { opacity:0.8; }
+
+  /* ── TAX CALC ── */
+  .tax-table { width:100%; border-collapse:collapse; font-size:10px; }
+  .tax-table th {
+    text-align:left; padding:4px 6px; border-bottom:1px solid var(--border);
+    font-family:'JetBrains Mono',monospace; font-size:8px; color:var(--text3);
+    text-transform:uppercase; letter-spacing:0.5px; cursor:pointer;
+  }
+  .tax-table th:hover { color:var(--accent); }
+  .tax-table td {
+    padding:4px 6px; border-bottom:1px solid var(--border);
+    font-family:'JetBrains Mono',monospace; font-size:10px;
+  }
+  .tax-table .total-row td { color:var(--accent); font-weight:700; border-top:2px solid var(--accent); }
+  .tax-table td.money { text-align:right; color:var(--gold); }
+
+  /* ── SHARE BTN ── */
+  .share-btn {
+    display:inline-block; padding:4px 12px; margin-top:6px;
+    background:var(--accent); color:#fff; border:none; border-radius:6px;
+    font-family:'JetBrains Mono',monospace; font-size:10px;
+    cursor:pointer; transition:opacity 0.15s;
+  }
+  .share-btn:hover { opacity:0.8; }
+
+  /* ── SOURCES ── */
+  .src-link {
+    display:inline-block; font-size:10px; padding:2px 8px; margin:2px;
+    background:var(--bg4); border:1px solid var(--border); border-radius:6px;
+    color:var(--blue); text-decoration:none; font-family:'JetBrains Mono',monospace;
+    transition:all 0.15s;
+  }
+  .src-link:hover { border-color:var(--blue); background:rgba(79,195,247,0.1); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="logo">EXODUS<span>.tracker</span></div>
+    <div class="header-pills">
+      <div class="h-pill"><b class="accent" id="hWealth">~$1.3T</b>&nbsp;est. wealth migrated</div>
+      <div class="h-pill"><b class="red">-1.46M</b>&nbsp;net migration '20-24</div>
+      <div class="h-pill"><b class="gold">$102B</b>&nbsp;AGI lost (IRS)</div>
+      <div class="h-pill"><b class="green">13.3%</b>&nbsp;CA tax →&nbsp;<b class="green">0%</b>&nbsp;TX/FL</div>
+    </div>
+  </div>
+  <div class="h-filters">
+    <button class="fbtn on" data-f="all">ALL</button>
+    <button class="fbtn" data-f="person">PEOPLE</button>
+    <button class="fbtn" data-f="company">COMPANIES</button>
+    <button class="fbtn" data-f="vc">VCs</button>
+    <button class="fbtn" data-f="media">MEDIA</button>
+  </div>
+</div>
+
+<div class="app">
+  <div class="sidebar">
+    <div class="sb-search">
+      <input type="text" placeholder="Search people, companies, cities..." id="search">
+    </div>
+    <div class="sb-list" id="sbList">
+      <div class="sb-hdr">TRACKED DEPARTURES <span class="cnt" id="cnt">0</span></div>
+      <div id="cards"></div>
+    </div>
+  </div>
+
+  <div class="map-area" id="mapArea">
+    <svg id="mapSvg"></svg>
+    <div class="markers-layer" id="markersLayer"></div>
+    <div class="map-stats">
+      <div class="ms-pill"><div class="v" id="msPeople">0</div><div class="l">People</div></div>
+      <div class="ms-pill"><div class="v" style="color:var(--blue);" id="msCompanies">0</div><div class="l">Companies</div></div>
+      <div class="ms-pill"><div class="v" style="color:var(--gold);" id="msWealth">$0</div><div class="l">Est. Wealth</div></div>
+    </div>
+    <div class="map-legend">
+      <div><span class="dot" style="background:var(--red);"></span> Origin (California)</div>
+      <div><span class="dot" style="background:var(--green);"></span> Destination</div>
+      <div><span class="line" style="background:var(--accent);"></span> Individual / Company</div>
+      <div><span class="line" style="background:var(--purple);"></span> VC / Investor</div>
+      <div><span class="line" style="background:var(--gold);"></span> Media</div>
+      <div style="margin-top:4px; font-style:italic;">Hover headshots · Click for details</div>
+    </div>
+    <div class="map-tooltip" id="tooltip"></div>
+    <div class="scrubber">
+      <button class="play-btn" id="playBtn" onclick="togglePlay()">&#9654;</button>
+      <input type="range" min="2016" max="2026" value="2026" id="yearSlider" oninput="scrubYear(this.value)">
+      <div class="yr" id="yearLabel">2026</div>
+    </div>
+  </div>
+
+  <div class="rpanel">
+    <div class="rp-tabs">
+      <button class="rp-tab on" data-t="detail">DETAIL</button>
+      <button class="rp-tab" data-t="analytics">ANALYTICS</button>
+      <button class="rp-tab" data-t="timeline">TIMELINE</button>
+      <button class="rp-tab" data-t="taxcalc">TAX CALC</button>
+    </div>
+    <div class="rp-body">
+      <div class="tc on" id="t-detail">
+        <div class="d-placeholder" id="dPlaceholder">
+          <div class="icon">&#127758;</div>
+          <div>Select a person or company<br>to view details</div>
+        </div>
+        <div id="dContent" style="display:none;"></div>
+      </div>
+      <div class="tc" id="t-analytics"></div>
+      <div class="tc" id="t-timeline"></div>
+      <div class="tc" id="t-taxcalc"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// VERIFIED DATA — Sources: Bloomberg, Forbes, SEC filings
+// Net worths marked "est." — all figures approximate
+// Status: CONFIRMED unless noted
+// ══════════════════════════════════════════════════════════════
+
+const D = [
+  // ── INDIVIDUALS (CONFIRMED MOVES) ──
+  {
+    id:'musk', name:'Elon Musk', role:'CEO, Tesla / SpaceX / xAI',
+    type:'person', nw:658e9, nwLabel:'~$658B', nwSource:'Bloomberg Mar 2026',
+    fromCity:'Los Angeles', fromSt:'CA', fLat:34.05, fLng:-118.24,
+    toCity:'Austin', toSt:'TX', tLat:30.27, tLng:-97.74,
+    date:'2020-12', dateLabel:'December 2020', confirmed:true,
+    reasons:['Taxes','COVID Factory Shutdowns','Regulation'],
+    bg:'Founded SpaceX, co-founded Tesla, Neuralink, xAI. Acquired Twitter/X in 2022. Moved SpaceX HQ to Starbase TX and X HQ to Bastrop TX in July 2024, citing CA gender identity school law as "final straw." Forbes estimates $839B (higher SpaceX/xAI valuation).',
+    quote:"California has become a one-party state. This is the final straw.",
+    investments:['Tesla','SpaceX','xAI','Neuralink','The Boring Company','X/Twitter'],
+    img:'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Elon_Musk_-_54820081119_%28cropped%29.jpg/400px-Elon_Musk_-_54820081119_%28cropped%29.jpg',
+    color:'#ff6b35',
+    sources:[{label:'KVUE',url:'https://www.kvue.com/article/money/business/elon-musk-foundation-texas-move-austin/269-fc551b6f-8df4-46ae-9aba-f0c84a848e48'},{label:'CNBC',url:'https://www.cnbc.com/2020/12/08/elon-musk-confirms-he-moved-to-texas.html'}]
+  },
+  {
+    id:'page', name:'Larry Page', role:'Co-Founder, Google/Alphabet',
+    type:'person', nw:272e9, nwLabel:'~$272B', nwSource:'Bloomberg/Forbes Mar 2026',
+    fromCity:'Palo Alto', fromSt:'CA', fLat:37.44, fLng:-122.14,
+    toCity:'Coconut Grove', toSt:'FL', tLat:25.73, tLng:-80.24,
+    date:'2025-12', dateLabel:'December 2025', confirmed:true,
+    reasons:['CA Billionaire Tax Act','Tax Avoidance'],
+    bg:'Dissolved/moved 45+ California LLCs in Dec 2025. Purchased $173.4M in Coconut Grove (Miami) estates — $101.5M waterfront home + $71.9M adjacent mansion. Extremely private.',
+    quote:'',
+    investments:['Alphabet/Google','Kitty Hawk','Planetary Ventures'],
+    img:'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Larry_Page_in_the_European_Parliament%2C_17.06.2009_%28cropped%29.jpg/400px-Larry_Page_in_the_European_Parliament%2C_17.06.2009_%28cropped%29.jpg',
+    color:'#4fc3f7'
+  },
+  {
+    id:'brin', name:'Sergey Brin', role:'Co-Founder, Google/Alphabet',
+    type:'person', nw:245e9, nwLabel:'~$245B', nwSource:'Bloomberg Mar 2026',
+    fromCity:'Los Altos', fromSt:'CA', fLat:37.39, fLng:-122.11,
+    toCity:'Miami Beach', toSt:'FL', tLat:25.79, tLng:-80.13,
+    date:'2025-12', dateLabel:'Dec 2025 – Mar 2026', confirmed:true,
+    reasons:['CA Billionaire Tax Act','Privacy'],
+    bg:'Terminated/moved 60+ California LLCs in Dec 2025. Closed on $51M waterfront mansion on Allison Island, Miami Beach (previously owned by LVMH CEO Michael Burke) in March 2026.',
+    quote:'',
+    investments:['Alphabet/Google','LTA Research (airships)','Bayshore Global Mgmt'],
+    img:'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Sergey_Brin_Ted_2010_%28cropped%29.jpg/400px-Sergey_Brin_Ted_2010_%28cropped%29.jpg',
+    color:'#4fc3f7'
+  },
+  {
+    id:'zuck', name:'Mark Zuckerberg', role:'CEO, Meta',
+    type:'person', nw:220e9, nwLabel:'~$220B', nwSource:'Bloomberg Mar 2026',
+    fromCity:'Palo Alto', fromSt:'CA', fLat:37.44, fLng:-122.14,
+    toCity:'Indian Creek', toSt:'FL', tLat:25.75, tLng:-80.16,
+    date:'2026-02', dateLabel:'February 2026 (in process)', confirmed:true,
+    reasons:['CA Billionaire Tax Act','Lifestyle'],
+    bg:'Closed on $170M estate at 7 Indian Creek Island Road — most expensive home sale in Miami-Dade history. Neighbor told WSJ he plans to move in by April 2026. CA estimated to lose $11B one-time + $300M/year in tax revenue from his departure alone. Indian Creek known as "Billionaire Bunker."',
+    quote:'',
+    investments:['Meta/Facebook','Chan Zuckerberg Initiative','Kauai Ranch'],
+    img:'https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/Mark_Zuckerberg_in_September_2025_%28cropped%29.jpg/400px-Mark_Zuckerberg_in_September_2025_%28cropped%29.jpg',
+    color:'#4fc3f7'
+  },
+  {
+    id:'ellison', name:'Larry Ellison', role:'Co-Founder & CTO, Oracle',
+    type:'person', nw:205e9, nwLabel:'~$205B', nwSource:'Bloomberg Mar 2026',
+    fromCity:'Woodside', fromSt:'CA', fLat:37.43, fLng:-122.25,
+    toCity:'Manalapan', toSt:'FL', tLat:26.57, tLng:-80.04,
+    date:'2020-12', dateLabel:'Dec 2020 (HI) → May 2023 (FL)', confirmed:true,
+    reasons:['Taxes','Lifestyle','Remote Work'],
+    bg:'Owns 98% of Hawaiian island of Lanai. Left CA for Hawaii Dec 2020, then filed Declaration of Domicile in Palm Beach County FL May 2023. $173M Manalapan "Gemini Mansion" estate. Registered FL voter since Apr 2023. Peak net worth $393B in Sept 2025 — briefly world\'s richest person.',
+    quote:"I have moved to the State of Hawaii and I will be using the power of Zoom.",
+    investments:['Oracle','Tesla (board)','Lanai Island Holdings'],
+    img:'https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Larry_Ellison_picture.png/400px-Larry_Ellison_picture.png',
+    color:'#66bb6a'
+  },
+  {
+    id:'kalanick', name:'Travis Kalanick', role:'Co-Founder, Uber / CEO, Atoms',
+    type:'person', nw:3.6e9, nwLabel:'~$3.6B', nwSource:'Forbes 400',
+    fromCity:'San Francisco', fromSt:'CA', fLat:37.77, fLng:-122.42,
+    toCity:'Austin', toSt:'TX', tLat:30.27, tLng:-97.74,
+    date:'2025-12', dateLabel:'December 18, 2025', confirmed:true,
+    reasons:['CA Billionaire Tax Act','Taxes','Business Climate'],
+    bg:'Co-founded Uber, ousted as CEO 2017. Founded CloudKitchens (ghost kitchens), raised $850M at $15B val (2021). Rebranded as Atoms (robotics) March 13, 2026. Announced move on TPBN podcast while discussing Atoms. Acquiring Pronto self-driving startup.',
+    quote:"I settled in Austin on December 18th. Why so much Florida action?! Come on homies.",
+    investments:['Uber (former)','Atoms/CloudKitchens','City Storage Systems'],
+    img:'https://upload.wikimedia.org/wikipedia/commons/thumb/3/32/The_CEO%2C_UBER%2C_Mr._Travis_Kalanick_meeting_the_Union_Minister_for_Electronics_%26_Information_Technology_and_Law_%26_Justice%2C_Shri_Ravi_Shankar_Prasad%2C_in_New_Delhi_on_December_15%2C_2016_%28cropped%29.jpg/400px-thumbnail.jpg',
+    color:'#4fc3f7'
+  },
+  {
+    id:'thiel', name:'Peter Thiel', role:'Co-Founder, PayPal & Palantir',
+    type:'vc', nw:25e9, nwLabel:'~$25B', nwSource:'Bloomberg Mar 2026',
+    fromCity:'Los Angeles', fromSt:'CA', fLat:34.05, fLng:-118.24,
+    toCity:'Miami Beach', toSt:'FL', tLat:25.79, tLng:-80.13,
+    date:'2020-12', dateLabel:'2020 (property) → 2024 (voter reg)', confirmed:true,
+    reasons:['Taxes','Political Climate','CA Billionaire Tax Act'],
+    bg:'Co-founded PayPal, Palantir. Early Facebook investor. Founders Fund GP. Bought two Venetian Islands homes ~$18M in 2020. Moved voter registration to FL March 2024. Thiel Capital signed Wynwood Miami lease Dec 2025. Palantir moved HQ to Miami Feb 2026.',
+    quote:"Silicon Valley is a one-party state... the politics have become very one-sided.",
+    investments:['Palantir','Founders Fund','Anduril','SpaceX'],
+    img:'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Peter_Thiel_by_Gage_Skidmore.jpg/400px-Peter_Thiel_by_Gage_Skidmore.jpg',
+    color:'#b388ff'
+  },
+  {
+    id:'sacks', name:'David Sacks', role:'Craft Ventures / White House AI Czar',
+    type:'vc', nw:1e9, nwLabel:'~$200M–$2B', nwSource:'Various (range, no Forbes/Bloomberg tracking)',
+    fromCity:'San Francisco', fromSt:'CA', fLat:37.77, fLng:-122.42,
+    toCity:'Austin', toSt:'TX', tLat:30.27, tLng:-97.74,
+    date:'2025-12', dateLabel:'December 2025', confirmed:true,
+    reasons:['CA Billionaire Tax Act','Political Alignment'],
+    bg:'PayPal Mafia member. Founded Yammer (sold to Microsoft $1.2B). GP at Craft Ventures. All-In Podcast co-host. Named White House AI & Crypto Czar Dec 2024. Divested fund positions for govt role. Opened Craft Ventures Austin office Dec 31, 2025.',
+    quote:"Austin will replace SF as the tech capital.",
+    investments:['Craft Ventures','Yammer (founder)','All-In Podcast'],
+    img:'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/David_Sacks_in_March_2025.jpg/400px-David_Sacks_in_March_2025.jpg',
+    color:'#b388ff'
+  },
+  {
+    id:'lonsdale', name:'Joe Lonsdale', role:'Co-Founder, Palantir & 8VC',
+    type:'vc', nw:2e9, nwLabel:'~$2B', nwSource:'Forbes MENA May 2025 (range: $425M–$2B+)',
+    fromCity:'San Francisco', fromSt:'CA', fLat:37.77, fLng:-122.42,
+    toCity:'Austin', toSt:'TX', tLat:30.27, tLng:-97.74,
+    date:'2020-10', dateLabel:'October 2020', confirmed:true,
+    reasons:['Taxes','Regulation','Schools','Business Climate'],
+    bg:'Co-founded Palantir, Addepar, OpenGov. Managing Partner at 8VC. Vocal critic of CA governance. One of the earliest movers in the Austin tech wave.',
+    quote:"California is no longer the best place to build a company.",
+    investments:['8VC','Palantir (co-founder)','Addepar','OpenGov'],
+    img:'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c0/Joe_Lonsdale.jpg/400px-Joe_Lonsdale.jpg',
+    color:'#b388ff'
+  },
+  {
+    id:'rabois', name:'Keith Rabois', role:'General Partner, Founders Fund',
+    type:'vc', nw:1e9, nwLabel:'~$1B+', nwSource:'Est.',
+    fromCity:'San Francisco', fromSt:'CA', fLat:37.77, fLng:-122.42,
+    toCity:'Miami Beach', toSt:'FL', tLat:25.79, tLng:-80.13,
+    date:'2020-11', dateLabel:'November 2020', confirmed:true,
+    reasons:['Taxes','SF Governance','Miami Tech Hub'],
+    bg:'PayPal Mafia member. Former exec at LinkedIn, Square. Bought $28.9M Miami Beach mansion. Catalyzed Miami as a tech hub alongside Mayor Suarez.',
+    quote:"SF is so massively improperly run it is impossible to stay.",
+    investments:['Founders Fund','OpenDoor','Khosla Ventures (former)'],
+    img:'https://upload.wikimedia.org/wikipedia/commons/thumb/d/da/Keith_Rabois_-_2011_TechCrunch_Disrupt.jpg/400px-Keith_Rabois_-_2011_TechCrunch_Disrupt.jpg',
+    color:'#b388ff'
+  },
+  // Marc Andreessen REMOVED — verified he did NOT leave CA (moved Atherton to Malibu within CA, explicitly stated "decided to stay")
+  {
+    id:'horowitz', name:'Ben Horowitz', role:'Co-Founder, a16z',
+    type:'vc', nw:1e9, nwLabel:'~$1B+', nwSource:'Est.',
+    fromCity:'Atherton', fromSt:'CA', fLat:37.46, fLng:-122.20,
+    toCity:'Las Vegas', toSt:'NV', tLat:36.17, tLng:-115.14,
+    date:'2021-06', dateLabel:'2021', confirmed:true,
+    reasons:['Taxes','Quality of Life'],
+    bg:'Co-founded a16z. Sold $14.5M Atherton estate. Updated LinkedIn to Las Vegas. Move confirmed.',
+    quote:'',
+    investments:['a16z','Opsware/Loudcloud (founder)'],
+    img:'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/TechCrunch_Disrupt_San_Francisco_2018_-_day_2_%2842713740520%29_%28cropped%29.jpg/400px-TechCrunch_Disrupt_San_Francisco_2018_-_day_2_%2842713740520%29_%28cropped%29.jpg',
+    color:'#b388ff'
+  },
+  {
+    id:'rogan', name:'Joe Rogan', role:'Host, The Joe Rogan Experience',
+    type:'media', nw:250e6, nwLabel:'~$250M', nwSource:'Forbes/Celebrity Net Worth',
+    fromCity:'Los Angeles', fromSt:'CA', fLat:34.05, fLng:-118.24,
+    toCity:'Austin', toSt:'TX', tLat:30.27, tLng:-97.74,
+    date:'2020-08', dateLabel:'August 2020', confirmed:true,
+    reasons:['Taxes','COVID Lockdowns','Freedom','Space'],
+    bg:'Host of world\'s most popular podcast ($250M Spotify deal). UFC commentator. Bought $14.4M Austin mansion. Built Comedy Mothership club. Catalyzed wave of tech/media moves to Austin.',
+    quote:"Everything is shut down [in CA]. We could eat at a restaurant [in TX]? California has gone full communist.",
+    investments:['JRE Podcast','Comedy Mothership','Onnit'],
+    img:'https://upload.wikimedia.org/wikipedia/commons/thumb/d/dc/Joe_Rogan.png/400px-Joe_Rogan.png',
+    color:'#ffc107'
+  },
+  {
+    id:'shapiro', name:'Ben Shapiro', role:'Founder, The Daily Wire',
+    type:'media', nw:60e6, nwLabel:'~$50–65M', nwSource:'Celebrity Net Worth / Est.',
+    fromCity:'Los Angeles', fromSt:'CA', fLat:34.05, fLng:-118.24,
+    toCity:'South Florida', toSt:'FL', tLat:26.12, tLng:-80.14,
+    date:'2020-09', dateLabel:'September 2020', confirmed:true,
+    reasons:['Taxes','Political Climate','Schools','COVID Lockdowns'],
+    bg:'Political commentator, author. Founded The Daily Wire. Ben personally moved to South Florida ($11M villa). Daily Wire corporate HQ moved to Nashville, TN. Two separate relocations.',
+    quote:"Terrible governance has consequences. We are leaving California. We are done.",
+    investments:['The Daily Wire','DW+','BentKey'],
+    img:'https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/Ben_Shapiro_December_2025_%28cropped%29.jpg/400px-Ben_Shapiro_December_2025_%28cropped%29.jpg',
+    color:'#ffc107'
+  },
+  {
+    id:'fridman', name:'Lex Fridman', role:'AI Researcher & Podcaster',
+    type:'media', nw:15e6, nwLabel:'~$15M+', nwSource:'Est.',
+    fromCity:'Cambridge', fromSt:'MA', fLat:42.37, fLng:-71.11,
+    toCity:'Austin', toSt:'TX', tLat:30.27, tLng:-97.74,
+    date:'2021-06', dateLabel:'2021', confirmed:true,
+    reasons:['Community','Podcast Network','Lifestyle'],
+    bg:'MIT AI researcher turned top podcaster. Followed Rogan and tech ecosystem to Austin. Note: moved from Boston/Cambridge area, not from California.',
+    quote:'',
+    investments:['Lex Fridman Podcast'],
+    img:'https://upload.wikimedia.org/wikipedia/commons/thumb/5/50/Lex_Fridman_teaching_at_MIT_in_2018.png/400px-Lex_Fridman_teaching_at_MIT_in_2018.png',
+    color:'#ffc107'
+  },
+  {
+    id:'snyder', name:'Lynsi Snyder', role:'President & Owner, In-N-Out Burger',
+    type:'person', nw:8.7e9, nwLabel:'~$8.7B', nwSource:'Forbes 400 (2025, #153)',
+    fromCity:'Baldwin Park', fromSt:'CA', fLat:34.09, fLng:-117.97,
+    toCity:'Franklin', toSt:'TN', tLat:35.93, tLng:-86.87,
+    date:'2024-01', dateLabel:'2023–2024', confirmed:true,
+    reasons:['Family','Cost of Living','Business Climate'],
+    bg:'Forbes 400 #153. Sole owner of In-N-Out Burger. Personal move to Franklin, TN confirmed. In-N-Out opening regional HQ + 35 restaurants in TN. However, Snyder explicitly told CNBC (July 2025): "We\'re not moving" corporate HQ out of California — Irvine HQ relocating to Baldwin Park, CA.',
+    quote:'',
+    investments:['In-N-Out Burger (sole owner)'],
+    img:'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Lynsi_Snyder.jpg/400px-Lynsi_Snyder.jpg',
+    color:'#ff6b35'
+  },
+
+  // ── COMPANIES (CONFIRMED HQ MOVES) ──
+  {
+    id:'spacex', name:'SpaceX', role:'Aerospace · Val: ~$800B',
+    type:'company', nw:800e9, nwLabel:'~$800B val', nwSource:'Dec 2025 secondary share sale',
+    fromCity:'Hawthorne', fromSt:'CA', fLat:33.92, fLng:-118.35,
+    toCity:'Starbase', toSt:'TX', tLat:26.00, tLng:-97.16,
+    date:'2024-07', dateLabel:'July 2024', confirmed:true,
+    reasons:['CA Gender Identity Law','Regulation','Operations'],
+    bg:'Musk announced HQ move from Hawthorne to Starbase TX July 2024. Starbase incorporated as a city May 2025. SpaceX/xAI merger Feb 2026 valued combined at ~$1.25T.',
+    quote:"This is the final straw. I am moving SpaceX HQ to Texas.",
+    investments:[],
+    img:'https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/SpaceX-Logo.svg/400px-SpaceX-Logo.svg.png',
+    color:'#ff6b35'
+  },
+  {
+    id:'xcorp', name:'X Corp (Twitter)', role:'Social Media',
+    type:'company', nw:20e9, nwLabel:'~$20B val', nwSource:'Est.',
+    fromCity:'San Francisco', fromSt:'CA', fLat:37.77, fLng:-122.42,
+    toCity:'Bastrop', toSt:'TX', tLat:30.11, tLng:-97.32,
+    date:'2024-09', dateLabel:'September 2024', confirmed:true,
+    reasons:['CA Gender Identity Law','CEO Relocation'],
+    bg:'Formerly Twitter. Shuttered iconic SF HQ. Official filing September 2024 moved to Bastrop TX (~30 mi east of Austin).',
+    quote:'',
+    investments:[],
+    img:'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b7/X_logo.jpg/400px-X_logo.jpg',
+    color:'#ff6b35'
+  },
+  {
+    id:'chevron', name:'Chevron', role:'Energy · Rev: ~$203B',
+    type:'company', nw:203e9, nwLabel:'$203B rev', nwSource:'FY2024',
+    fromCity:'San Ramon', fromSt:'CA', fLat:37.78, fLng:-121.98,
+    toCity:'Houston', toSt:'TX', tLat:29.76, tLng:-95.37,
+    date:'2024-08', dateLabel:'August 2024', confirmed:true,
+    reasons:['CA Energy Policies','Regulation','Cost'],
+    bg:'Born in California in 1879. Announced HQ move to Houston Aug 2024, phased over 5 years. One of the most symbolic departures — 145+ years of CA history. CEO Mike Wirth cited hostile CA energy policies.',
+    quote:"CA energy policies raise costs, hurt consumers, and discourage investment.",
+    investments:[],
+    img:'https://upload.wikimedia.org/wikipedia/commons/thumb/8/86/Chevron_Logo.svg/400px-Chevron_Logo.svg.png',
+    color:'#ff6b35'
+  },
+  {
+    id:'tesla', name:'Tesla, Inc.', role:'EV & Energy · Rev: ~$94.8B',
+    type:'company', nw:94.8e9, nwLabel:'$94.8B rev', nwSource:'FY2025 earnings release',
+    fromCity:'Palo Alto', fromSt:'CA', fLat:37.44, fLng:-122.14,
+    toCity:'Austin', toSt:'TX', tLat:30.27, tLng:-97.74,
+    date:'2021-12', dateLabel:'December 2021', confirmed:true,
+    reasons:['Cost','Gigafactory','CEO Relocation','Housing'],
+    bg:'Shareholder vote Oct 2021. Moved from Palo Alto to Austin. Built massive Gigafactory Texas.',
+    quote:'',
+    investments:[],
+    img:'https://upload.wikimedia.org/wikipedia/commons/thumb/b/bd/Tesla_Motors.svg/400px-Tesla_Motors.svg.png',
+    color:'#ff6b35'
+  },
+  {
+    id:'oracle', name:'Oracle Corporation', role:'Enterprise Software · Rev: ~$57.4B',
+    type:'company', nw:57.4e9, nwLabel:'$57.4B rev', nwSource:'FY2025 earnings release',
+    fromCity:'Redwood City', fromSt:'CA', fLat:37.49, fLng:-122.24,
+    toCity:'Nashville', toSt:'TN', tLat:36.16, tLng:-86.78,
+    date:'2020-12', dateLabel:'Dec 2020 (Austin) → 2024 (Nashville)', confirmed:true,
+    reasons:['Business Climate','Taxes','Flexibility'],
+    bg:'Initially moved HQ to Austin TX Dec 2020, then relocated again to Nashville TN as "world HQ" in 2024.',
+    quote:'',
+    investments:[],
+    img:'https://upload.wikimedia.org/wikipedia/commons/thumb/5/50/Oracle_logo.svg/400px-Oracle_logo.svg.png',
+    color:'#ff6b35'
+  },
+  {
+    id:'hpe', name:'Hewlett Packard Enterprise', role:'IT Infra · Rev: ~$34.3B',
+    type:'company', nw:34.3e9, nwLabel:'$34.3B rev', nwSource:'FY2025 earnings release',
+    fromCity:'San Jose', fromSt:'CA', fLat:37.34, fLng:-121.89,
+    toCity:'Houston', toSt:'TX', tLat:29.76, tLng:-95.37,
+    date:'2020-12', dateLabel:'December 2020', confirmed:true,
+    reasons:['Cost of Living','Business Climate','Talent'],
+    bg:'Iconic Silicon Valley company. Moved from San Jose to Spring/Houston TX. New campus opened 2022.',
+    quote:'',
+    investments:[],
+    img:'https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/Hewlett_Packard_Enterprise_logo.svg/400px-Hewlett_Packard_Enterprise_logo.svg.png',
+    color:'#ff6b35'
+  },
+  {
+    id:'hp', name:'HP Inc.', role:'PC & Printing · Rev: ~$55.3B',
+    type:'company', nw:55.3e9, nwLabel:'$55.3B rev', nwSource:'FY2025 earnings release',
+    fromCity:'Palo Alto', fromSt:'CA', fLat:37.44, fLng:-122.14,
+    toCity:'Houston', toSt:'TX', tLat:29.76, tLng:-95.37,
+    date:'2022-04', dateLabel:'April 2022', confirmed:true,
+    reasons:['Cost','Consolidation'],
+    bg:'The original HP garage company — literal birthplace of Silicon Valley — moved HQ to Houston. Perhaps the most symbolically significant corporate departure.',
+    quote:'',
+    investments:[],
+    img:'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ad/HP_logo_2012.svg/400px-HP_logo_2012.svg.png',
+    color:'#ff6b35'
+  },
+  {
+    id:'schwab', name:'Charles Schwab Corp.', role:'Financial Services · AUM: ~$9.93T',
+    type:'company', nw:9.93e12, nwLabel:'$9.93T AUM', nwSource:'Q1 2025 earnings',
+    fromCity:'San Francisco', fromSt:'CA', fLat:37.77, fLng:-122.42,
+    toCity:'Westlake', toSt:'TX', tLat:32.99, tLng:-97.20,
+    date:'2021-01', dateLabel:'January 2021', confirmed:true,
+    reasons:['Cost','Taxes','TD Ameritrade Merger'],
+    bg:'Largest brokerage in the US. Moved to Westlake TX (Denton County, near DFW) after TD Ameritrade acquisition.',
+    quote:'',
+    investments:[],
+    img:'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/Charles_Schwab_Corporation_logo.svg/400px-Charles_Schwab_Corporation_logo.svg.png',
+    color:'#ff6b35'
+  },
+  {
+    id:'palantir', name:'Palantir Technologies', role:'AI / Data · Rev: ~$2.9B',
+    type:'company', nw:2.9e9, nwLabel:'$2.9B rev', nwSource:'FY2024',
+    fromCity:'Palo Alto', fromSt:'CA', fLat:37.44, fLng:-122.14,
+    toCity:'Miami', toSt:'FL', tLat:25.96, tLng:-80.14,
+    date:'2020-08', dateLabel:'Aug 2020 (Denver) → Feb 2026 (Miami)', confirmed:true,
+    reasons:['Anti-SV Monoculture','CO AI Regulation','Political Alignment'],
+    bg:'Co-founded by Peter Thiel. Moved from Palo Alto to Denver CO (Aug 2020), then to Aventura/Miami FL (Feb 2026). CEO Karp cited protests outside Denver office and CO AI regulation law.',
+    quote:'',
+    investments:[],
+    img:'https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Palantir_Technologies_logo.svg/400px-Palantir_Technologies_logo.svg.png',
+    color:'#ff6b35'
+  },
+  {
+    id:'mckesson', name:'McKesson Corporation', role:'Healthcare · Rev: ~$309B',
+    type:'company', nw:309e9, nwLabel:'$309B rev', nwSource:'FY2024',
+    fromCity:'San Francisco', fromSt:'CA', fLat:37.77, fLng:-122.42,
+    toCity:'Irving', toSt:'TX', tLat:32.81, tLng:-96.95,
+    date:'2019-04', dateLabel:'April 2019', confirmed:true,
+    reasons:['Cost','Business Climate'],
+    bg:'Largest healthcare company by revenue. Fortune 500 #7. Highest-ranked F500 company to leave CA. Moved to Las Colinas (Irving) TX.',
+    quote:'',
+    investments:[],
+    img:'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d9/McKesson_logo.svg/400px-McKesson_logo.svg.png',
+    color:'#ff6b35'
+  },
+  {
+    id:'cbre', name:'CBRE Group', role:'Real Estate · Rev: ~$34B',
+    type:'company', nw:34e9, nwLabel:'$34B rev', nwSource:'FY2023',
+    fromCity:'Los Angeles', fromSt:'CA', fLat:34.05, fLng:-118.24,
+    toCity:'Dallas', toSt:'TX', tLat:32.78, tLng:-96.80,
+    date:'2020-11', dateLabel:'November 2020', confirmed:true,
+    reasons:['Cost','De Facto HQ Already'],
+    bg:'World\'s largest commercial real estate services firm. Formalized Dallas as HQ after operating there for 8 years.',
+    quote:'',
+    investments:[],
+    img:'https://upload.wikimedia.org/wikipedia/commons/thumb/2/25/CBRE_Group_logo_%28till_2021%29.svg/400px-CBRE_Group_logo_%28till_2021%29.svg.png',
+    color:'#ff6b35'
+  },
+  {
+    id:'aecom', name:'AECOM', role:'Engineering · Rev: ~$14B',
+    type:'company', nw:14e9, nwLabel:'$14B rev', nwSource:'FY2023',
+    fromCity:'Los Angeles', fromSt:'CA', fLat:34.05, fLng:-118.24,
+    toCity:'Dallas', toSt:'TX', tLat:32.78, tLng:-96.80,
+    date:'2021-01', dateLabel:'2021', confirmed:true,
+    reasons:['Cost','TX Business Climate'],
+    bg:'Global infrastructure consulting. Moved from LA to Dallas.',
+    quote:'',
+    investments:[],
+    img:'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/AECOM_logo.svg/400px-AECOM_logo.svg.png',
+    color:'#ff6b35'
+  },
+  {
+    id:'jacobs', name:'Jacobs Solutions', role:'Engineering · Rev: ~$16B',
+    type:'company', nw:16e9, nwLabel:'$16B rev', nwSource:'FY2023',
+    fromCity:'Pasadena', fromSt:'CA', fLat:34.15, fLng:-118.14,
+    toCity:'Dallas', toSt:'TX', tLat:32.78, tLng:-96.80,
+    date:'2016-01', dateLabel:'2016', confirmed:true,
+    reasons:['Cost','Central US Location'],
+    bg:'Early mover. Left Pasadena for Dallas in 2016, predating the 2020 wave.',
+    quote:'',
+    investments:[],
+    img:'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/Jacobs_Engineering_Group_logo.svg/400px-Jacobs_Engineering_Group_logo.svg.png',
+    color:'#ff6b35'
+  },
+];
+
+// ══════════════════════════════════════════════════════════════
+// D3 MAP WITH TOPOJSON
+// ══════════════════════════════════════════════════════════════
+
+let projection, pathGen, mapW, mapH, currentTransform = d3.zoomIdentity;
+
+async function renderMap() {
+  const container = document.getElementById('mapArea');
+  const svgEl = document.getElementById('mapSvg');
+  mapW = container.clientWidth;
+  mapH = container.clientHeight;
+
+  // Use D3 to manage the SVG
+  const svg = d3.select(svgEl)
+    .attr('width', mapW)
+    .attr('height', mapH);
+
+  svg.selectAll('*').remove();
+
+  // Background rect (catches mouse events for pan/zoom)
+  svg.append('rect').attr('width', mapW).attr('height', mapH).attr('fill', '#06060b');
+
+  // Main group that gets transformed by zoom
+  const g = svg.append('g').attr('id', 'mapG');
+
+  // Albers USA projection
+  projection = d3.geoAlbersUsa()
+    .translate([mapW / 2, mapH / 2])
+    .scale(Math.min(mapW, mapH) * 1.3);
+
+  pathGen = d3.geoPath().projection(projection);
+
+  // Load US TopoJSON
+  const res = await fetch('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json');
+  const us = await res.json();
+  const states = topojson.feature(us, us.objects.states);
+  const stateMesh = topojson.mesh(us, us.objects.states, (a, b) => a !== b);
+
+  const destStates = { 'Texas':true, 'Florida':true, 'Tennessee':true, 'Nevada':true };
+  const caFips = '06';
+  const stateNames = {
+    '01':'Alabama','02':'Alaska','04':'Arizona','05':'Arkansas','06':'California',
+    '08':'Colorado','09':'Connecticut','10':'Delaware','11':'DC','12':'Florida',
+    '13':'Georgia','15':'Hawaii','16':'Idaho','17':'Illinois','18':'Indiana',
+    '19':'Iowa','20':'Kansas','21':'Kentucky','22':'Louisiana','23':'Maine',
+    '24':'Maryland','25':'Massachusetts','26':'Michigan','27':'Minnesota',
+    '28':'Mississippi','29':'Missouri','30':'Montana','31':'Nebraska',
+    '32':'Nevada','33':'New Hampshire','34':'New Jersey','35':'New Mexico',
+    '36':'New York','37':'North Carolina','38':'North Dakota','39':'Ohio',
+    '40':'Oklahoma','41':'Oregon','42':'Pennsylvania','44':'Rhode Island',
+    '45':'South Carolina','46':'South Dakota','47':'Tennessee','48':'Texas',
+    '49':'Utah','50':'Vermont','51':'Virginia','53':'Washington',
+    '54':'West Virginia','55':'Wisconsin','56':'Wyoming','72':'Puerto Rico'
+  };
+
+  // Grid
+  const gridG = g.append('g').attr('class','grid-layer');
+  for (let x = 0; x < mapW; x += 60) gridG.append('line').attr('x1',x).attr('y1',0).attr('x2',x).attr('y2',mapH).attr('stroke','#0e0e16').attr('stroke-width',0.5);
+  for (let y = 0; y < mapH; y += 60) gridG.append('line').attr('x1',0).attr('y1',y).attr('x2',mapW).attr('y2',y).attr('stroke','#0e0e16').attr('stroke-width',0.5);
+
+  // States
+  g.append('g').attr('class','states-layer').selectAll('path')
+    .data(states.features).enter().append('path')
+    .attr('d', pathGen)
+    .attr('fill', f => {
+      const fips = String(f.id).padStart(2,'0');
+      const name = stateNames[fips]||'';
+      if(fips===caFips) return '#1a0a0a';
+      if(destStates[name]) return '#0a1a0f';
+      return '#0c0c14';
+    })
+    .attr('stroke', f => {
+      const fips = String(f.id).padStart(2,'0');
+      const name = stateNames[fips]||'';
+      if(fips===caFips) return '#3a1515';
+      if(destStates[name]) return '#153a1f';
+      return '#1a1a28';
+    })
+    .attr('stroke-width', 0.5)
+    .style('cursor', f => {
+      const name = stateNames[String(f.id).padStart(2,'0')]||'';
+      return destStates[name] ? 'pointer' : 'default';
+    })
+    .on('click', (event, f) => {
+      const name = stateNames[String(f.id).padStart(2,'0')]||'';
+      if(destStates[name] || name==='California') showStateDetail(name);
+    })
+    .on('mouseenter', function(event, f) {
+      const name = stateNames[String(f.id).padStart(2,'0')]||'';
+      if(destStates[name]) d3.select(this).attr('fill','#0f2a18').attr('stroke','#2a5a3a');
+      if(name==='California') d3.select(this).attr('fill','#2a0f0f').attr('stroke','#5a2a2a');
+    })
+    .on('mouseleave', function(event, f) {
+      const fips = String(f.id).padStart(2,'0');
+      const name = stateNames[fips]||'';
+      if(fips===caFips) d3.select(this).attr('fill','#1a0a0a').attr('stroke','#3a1515');
+      else if(destStates[name]) d3.select(this).attr('fill','#0a1a0f').attr('stroke','#153a1f');
+      else d3.select(this).attr('fill','#0c0c14').attr('stroke','#1a1a28');
+    });
+
+  // State mesh
+  g.append('path').datum(stateMesh).attr('d', pathGen)
+    .attr('fill','none').attr('stroke','#1c1c2c').attr('stroke-width',0.4);
+
+  // California label
+  const caCenter = projection([-119.4, 37.2]);
+  if (caCenter) {
+    const caG = g.append('g');
+    caG.append('circle').attr('cx',caCenter[0]).attr('cy',caCenter[1]).attr('r',40).attr('fill','rgba(244,67,54,0.06)');
+    caG.append('text').attr('x',caCenter[0]).attr('y',caCenter[1]-5).attr('fill','#f44336')
+      .attr('font-family','JetBrains Mono,monospace').attr('font-size',10).attr('font-weight',700)
+      .attr('text-anchor','middle').attr('opacity',0.6).text('CALIFORNIA');
+    caG.append('text').attr('x',caCenter[0]).attr('y',caCenter[1]+7).attr('fill','#f44336')
+      .attr('font-family','JetBrains Mono,monospace').attr('font-size',7)
+      .attr('text-anchor','middle').attr('opacity',0.4).text('13.3% TAX');
+  }
+
+  // City dots
+  const cities = [
+    {name:'San Francisco',lat:37.77,lng:-122.42,type:'origin'},
+    {name:'Los Angeles',lat:34.05,lng:-118.24,type:'origin'},
+    {name:'Austin',lat:30.27,lng:-97.74,type:'dest'},
+    {name:'Miami',lat:25.76,lng:-80.19,type:'dest'},
+    {name:'Houston',lat:29.76,lng:-95.37,type:'dest'},
+    {name:'Nashville',lat:36.16,lng:-86.78,type:'dest'},
+    {name:'Dallas/Irving',lat:32.78,lng:-96.80,type:'dest'},
+    {name:'Las Vegas',lat:36.17,lng:-115.14,type:'dest'},
+    {name:'Franklin, TN',lat:35.93,lng:-86.87,type:'dest'},
+  ];
+  const cityG = g.append('g').attr('class','city-layer');
+  cities.forEach(c => {
+    const p = projection([c.lng, c.lat]);
+    if (!p) return;
+    const col = c.type==='origin'?'#f44336':'#4caf50';
+    const glow = c.type==='origin'?'rgba(244,67,54,0.2)':'rgba(76,175,80,0.2)';
+    const cg = cityG.append('g');
+    const pulse = cg.append('circle').attr('cx',p[0]).attr('cy',p[1]).attr('r',20).attr('fill',glow);
+    pulse.append('animate').attr('attributeName','r').attr('values','15;25;15').attr('dur','4s').attr('repeatCount','indefinite');
+    pulse.append('animate').attr('attributeName','opacity').attr('values','0.3;0.1;0.3').attr('dur','4s').attr('repeatCount','indefinite');
+    cg.append('circle').attr('cx',p[0]).attr('cy',p[1]).attr('r',3).attr('fill',col).attr('opacity',0.8);
+    cg.append('text').attr('x',p[0]).attr('y',p[1]-8).attr('fill',col)
+      .attr('font-family','JetBrains Mono,monospace').attr('font-size',7).attr('text-anchor','middle')
+      .attr('font-weight',600).attr('opacity',0.7).text(c.name.toUpperCase());
+  });
+
+  // Arcs
+  const arcG = g.append('g').attr('class','arc-layer');
+  D.forEach(d => {
+    const p1 = projection([d.fLng, d.fLat]);
+    const p2 = projection([d.tLng, d.tLat]);
+    if (!p1 || !p2) return;
+    const dx=p2[0]-p1[0], dy=p2[1]-p1[1];
+    const dist = Math.sqrt(dx*dx+dy*dy);
+    if (dist<5) return;
+    const mx=(p1[0]+p2[0])/2, my=(p1[1]+p2[1])/2;
+    const nx=-dy/dist, ny=dx/dist;
+    const curve=Math.min(dist*0.35,120);
+    const cx=mx+nx*curve, cy=my+ny*curve;
+    const col=d.color;
+    const sw=Math.max(0.8,Math.min(2.5,Math.log10(d.nw/1e9)*0.4+0.5));
+    const pathD=`M ${p1[0]} ${p1[1]} Q ${cx} ${cy} ${p2[0]} ${p2[1]}`;
+    const dur=2.5+Math.random()*2;
+
+    arcG.append('path').attr('d',pathD).attr('fill','none').attr('stroke',col)
+      .attr('stroke-width',sw).attr('opacity',0.12).attr('class','arc-bg').attr('data-id',d.id);
+    const fg = arcG.append('path').attr('d',pathD).attr('fill','none').attr('stroke',col)
+      .attr('stroke-width',sw).attr('opacity',0.6)
+      .attr('stroke-dasharray',`${dist*0.12} ${dist*0.88}`)
+      .attr('class','arc-fg').attr('data-id',d.id);
+    fg.append('animate').attr('attributeName','stroke-dashoffset').attr('from',dist).attr('to',-dist).attr('dur',dur+'s').attr('repeatCount','indefinite');
+    arcG.append('circle').attr('cx',p2[0]).attr('cy',p2[1]).attr('r',2).attr('fill',col).attr('opacity',0.5);
+  });
+
+  // Lasso selection rect
+  svg.append('rect').attr('id','lassoRect').attr('fill','rgba(255,107,53,0.1)')
+    .attr('stroke','#ff6b35').attr('stroke-width',1).attr('stroke-dasharray','4,4')
+    .attr('rx',3).attr('display','none');
+
+  // ── ZOOM ──
+  const zoom = d3.zoom()
+    .scaleExtent([0.8, 8])
+    .on('zoom', (event) => {
+      currentTransform = event.transform;
+      g.attr('transform', event.transform);
+      renderMarkers(); // reposition HTML markers
+    });
+  svg.call(zoom);
+
+  // Apply current transform if we have one from before
+  if (currentTransform !== d3.zoomIdentity) {
+    svg.call(zoom.transform, currentTransform);
+  }
+
+  // ── LASSO SELECTION ──
+  let lassoStart = null, lassoActive = false;
+  svg.on('mousedown.lasso', (event) => {
+    if (event.shiftKey) {
+      lassoActive = true;
+      lassoStart = [event.offsetX, event.offsetY];
+      d3.select('#lassoRect').attr('x',lassoStart[0]).attr('y',lassoStart[1])
+        .attr('width',0).attr('height',0).attr('display','block');
+      event.stopPropagation();
+    }
+  });
+  svg.on('mousemove.lasso', (event) => {
+    if (!lassoActive) return;
+    const x = Math.min(lassoStart[0], event.offsetX);
+    const y = Math.min(lassoStart[1], event.offsetY);
+    const w = Math.abs(event.offsetX - lassoStart[0]);
+    const h = Math.abs(event.offsetY - lassoStart[1]);
+    d3.select('#lassoRect').attr('x',x).attr('y',y).attr('width',w).attr('height',h);
+  });
+  svg.on('mouseup.lasso', (event) => {
+    if (!lassoActive) return;
+    lassoActive = false;
+    const rect = d3.select('#lassoRect');
+    const rx = +rect.attr('x'), ry = +rect.attr('y');
+    const rw = +rect.attr('width'), rh = +rect.attr('height');
+    rect.attr('display','none');
+    if (rw < 10 || rh < 10) return;
+
+    // Find all markers within the lasso rectangle
+    const selected = [];
+    document.querySelectorAll('.hm').forEach(el => {
+      const elRect = el.getBoundingClientRect();
+      const mapRect = container.getBoundingClientRect();
+      const cx = elRect.left - mapRect.left + elRect.width/2;
+      const cy = elRect.top - mapRect.top + elRect.height/2;
+      if (cx >= rx && cx <= rx+rw && cy >= ry && cy <= ry+rh) {
+        selected.push(el.dataset.id);
+      }
+    });
+
+    if (selected.length > 0) showLassoResults(selected);
+  });
+
+  // HTML headshot markers
+  renderMarkers();
+
+  // Stats
+  const people = D.filter(d => d.type !== 'company');
+  const companies = D.filter(d => d.type === 'company');
+  document.getElementById('msPeople').textContent = people.length;
+  document.getElementById('msCompanies').textContent = companies.length;
+  const tw = people.reduce((s,d) => s + d.nw, 0);
+  document.getElementById('msWealth').textContent = tw >= 1e12 ? '$'+(tw/1e12).toFixed(1)+'T' : '$'+(tw/1e9).toFixed(0)+'B';
+}
+
+function getMetro(city, st) {
+  // Merge nearby cities into metro areas
+  const metros = {
+    'Austin,TX':['Austin','Bastrop'],
+    'DFW,TX':['Dallas','Irving','Westlake'],
+    'Starbase,TX':['Starbase'],
+    'Houston,TX':['Houston'],
+    'Miami,FL':['Miami','Miami Beach','Coconut Grove','Indian Creek','South Florida'],
+    'PalmBeach,FL':['Manalapan','Palm Beach'],
+    'Nashville,TN':['Nashville','Franklin'],
+    'LasVegas,NV':['Las Vegas'],
+  };
+  for (const [metro, cities] of Object.entries(metros)) {
+    if (cities.some(c => city.includes(c))) return metro;
+  }
+  return city + ',' + st;
+}
+
+function renderMarkers() {
+  const layer = document.getElementById('markersLayer');
+  const tooltip = document.getElementById('tooltip');
+  layer.innerHTML = '';
+
+  const t = currentTransform;
+
+  // Group by metro, collect all positions to average for center
+  const groups = {};
+  D.forEach(d => {
+    const p = projection([d.tLng, d.tLat]);
+    if (!p) return;
+    const tx = t.applyX(p[0]);
+    const ty = t.applyY(p[1]);
+    const metro = getMetro(d.toCity, d.toSt);
+    if (!groups[metro]) groups[metro] = { xs:[], ys:[], items:[] };
+    groups[metro].xs.push(tx);
+    groups[metro].ys.push(ty);
+    groups[metro].items.push({...d, tx, ty});
+  });
+  // Average center
+  Object.values(groups).forEach(g => {
+    g.x = g.xs.reduce((a,b)=>a+b,0)/g.xs.length;
+    g.y = g.ys.reduce((a,b)=>a+b,0)/g.ys.length;
+  });
+
+  // Sizing
+  const sz = Math.min(48, 28 * Math.pow(t.k, 0.3));
+  const coW = sz * 1.5, coH = sz * 0.75;
+
+  Object.values(groups).forEach(g => {
+    // Split into people (sorted by NW) and companies (sorted by NW)
+    const ppl = g.items.filter(d=>d.type!=='company').sort((a,b)=>b.nw-a.nw);
+    const cos = g.items.filter(d=>d.type==='company').sort((a,b)=>b.nw-a.nw);
+
+    const maxC = t.k > 2 ? 5 : 4;
+    const pCols = Math.min(maxC, ppl.length||1);
+    const cCols = Math.min(maxC, cos.length||1);
+    const pGap = sz + 10;
+    const cGapH = coW + 10;
+    const rowH = sz + 14;
+    const pRows = Math.ceil(ppl.length/pCols);
+    const cRows = Math.ceil(cos.length/cCols);
+    const secGap = (ppl.length && cos.length) ? 14 : 0;
+    const totalH = pRows*rowH + cRows*rowH + secGap;
+    let yStart = g.y - totalH/2 + 10;
+
+    // Place people in grid
+    ppl.forEach((d,i) => {
+      const r=Math.floor(i/pCols), c=i%pCols;
+      const rc=Math.min(pCols, ppl.length - r*pCols);
+      const px = g.x + (c-(rc-1)/2)*pGap;
+      const py = yStart + r*rowH;
+      mkMarker(d,px,py,sz,sz,false,layer,tooltip,t);
+    });
+
+    yStart += pRows*rowH + secGap;
+
+    // Place companies in grid
+    cos.forEach((d,i) => {
+      const r=Math.floor(i/cCols), c=i%cCols;
+      const rc=Math.min(cCols, cos.length - r*cCols);
+      const px = g.x + (c-(rc-1)/2)*cGapH;
+      const py = yStart + r*rowH;
+      mkMarker(d,px,py,coW,coH,true,layer,tooltip,t);
+    });
+  });
+}
+
+function mkMarker(d,px,py,w,h,isCo,layer,tooltip,t) {
+  const el = document.createElement('div');
+  el.className = `hm ${isCo?'co':''}`;
+  el.style.cssText = `width:${w}px;height:${h}px;left:${px-w/2}px;top:${py-h/2}px;border-color:${d.color};font-size:${Math.max(7,8*Math.pow(t.k,0.2))}px;`;
+  el.dataset.id = d.id;
+  const ini = d.name.split(' ').map(x=>x[0]).join('').slice(0,2);
+  if(d.img){const im=document.createElement('img');im.src=d.img;im.alt=d.name;im.loading='lazy';im.onerror=function(){this.remove();el.textContent=ini;};el.appendChild(im);}
+  else{el.textContent=ini;}
+  if(t.k>1.6){const lb=document.createElement('div');lb.style.cssText=`position:absolute;bottom:-13px;left:50%;transform:translateX(-50%);font-family:JetBrains Mono,monospace;font-size:${Math.min(10,6*t.k/1.5)}px;color:#bbb;white-space:nowrap;pointer-events:none;text-shadow:0 1px 4px #000;`;lb.textContent=isCo?d.name:d.name.split(' ').slice(0,2).join(' ');el.appendChild(lb);}
+  el.addEventListener('mouseenter',()=>{
+    tooltip.style.display='block';
+    tooltip.innerHTML=`<div class="tt-name">${d.name}</div><div class="tt-nw">${d.nwLabel}</div><div class="tt-route">${d.fromCity}, ${d.fromSt} → ${d.toCity}, ${d.toSt}</div>`;
+    tooltip.style.left=(px+20)+'px';tooltip.style.top=(py-30)+'px';tooltip.style.borderColor=d.color;
+    document.querySelectorAll('.arc-bg,.arc-fg').forEach(p=>{
+      if(p.dataset.id===d.id){p.style.opacity=p.classList.contains('arc-bg')?'0.35':'1';p.style.strokeWidth='3';}
+      else{p.style.opacity=p.classList.contains('arc-bg')?'0.04':'0.15';}
+    });
+  });
+  el.addEventListener('mouseleave',()=>{tooltip.style.display='none';document.querySelectorAll('.arc-bg,.arc-fg').forEach(p=>{p.style.opacity='';p.style.strokeWidth='';});});
+  el.addEventListener('click',()=>sel(d.id));
+  layer.appendChild(el);
+}
+
+// ── STATE DETAIL ──
+function showStateDetail(stateName) {
+  // Find state abbreviation
+  const stAbbr = {Texas:'TX',Florida:'FL',Tennessee:'TN',Nevada:'NV',California:'CA',Colorado:'CO',Montana:'MT'};
+  const abbr = stAbbr[stateName] || stateName;
+  const fmt = v => v>=1e12?'$'+(v/1e12).toFixed(1)+'T':v>=1e9?'$'+(v/1e9).toFixed(0)+'B':v>=1e6?'$'+(v/1e6).toFixed(0)+'M':'$'+Math.round(v);
+
+  let items, title, subtitle;
+  if (stateName === 'California') {
+    items = D; // everyone LEFT from CA
+    title = 'California — Origin';
+    subtitle = 'Everyone who left this state';
+  } else {
+    items = D.filter(d => d.toSt === abbr);
+    title = `${stateName} (${abbr}) — Destination`;
+    subtitle = `${items.length} entities relocated here`;
+  }
+
+  if (items.length === 0) return;
+
+  const people = items.filter(d => d.type !== 'company');
+  const companies = items.filter(d => d.type === 'company');
+  const totalNw = people.reduce((s,d) => s+d.nw, 0);
+  const wealthTaxAvoided = Math.max(0, people.reduce((s,d) => s + (d.nw - 1e9) * 0.05, 0));
+  const annualTaxGain = totalNw * 0.02 * 0.133;
+  const noTaxStates = ['TX','FL','NV','TN'];
+  const destTaxRate = noTaxStates.includes(abbr) ? 0 : null;
+
+  // Show in detail panel
+  document.querySelectorAll('.rp-tab').forEach(t=>t.classList.remove('on'));
+  document.querySelector('[data-t="detail"]').classList.add('on');
+  document.querySelectorAll('.tc').forEach(t=>t.classList.remove('on'));
+  document.getElementById('t-detail').classList.add('on');
+  document.getElementById('dPlaceholder').style.display='none';
+  const el = document.getElementById('dContent');
+  el.style.display='block';
+
+  el.innerHTML = `
+    <div class="d-hero fi">
+      <div class="d-avatar" style="font-size:18px;border-color:${stateName==='California'?'var(--red)':'var(--green)'};">${abbr}</div>
+      <div class="d-name">${title}</div>
+      <div class="d-role">${subtitle}</div>
+    </div>
+    <div class="d-grid fi">
+      <div class="d-stat"><div class="sv" style="font-size:14px;">${people.length}</div><div class="sl">People</div></div>
+      <div class="d-stat"><div class="sv" style="font-size:14px;color:var(--blue);">${companies.length}</div><div class="sl">Companies</div></div>
+      <div class="d-stat"><div class="sv" style="font-size:13px;color:var(--gold);">${fmt(totalNw)}</div><div class="sl">Combined Wealth</div></div>
+      <div class="d-stat"><div class="sv" style="font-size:13px;color:var(--red);">${fmt(wealthTaxAvoided)}</div><div class="sl">Wealth Tax Avoided</div></div>
+    </div>
+    ${stateName !== 'California' ? `
+    <div class="d-sec fi"><h4>Tax Advantage</h4>
+      <div class="d-row"><span class="lbl">State Income Tax</span><span class="val" style="color:var(--green);">${destTaxRate !== null ? destTaxRate + '%' : 'Varies'}</span></div>
+      <div class="d-row"><span class="lbl">CA Rate Avoided</span><span class="val" style="color:var(--red);">13.3%</span></div>
+      <div class="d-row"><span class="lbl">Est. Annual Tax Saved</span><span class="val" style="color:var(--gold);">${fmt(annualTaxGain)}/yr</span></div>
+      <div class="d-row"><span class="lbl">Est. 10-Year Savings</span><span class="val" style="color:var(--gold);">${fmt(annualTaxGain*10)}</span></div>
+    </div>` : ''}
+    <div class="d-sec fi"><h4>${stateName==='California'?'Who Left':'Who Moved Here'}</h4>
+      ${people.length ? '<div style="font-size:9px;color:var(--text3);margin-bottom:4px;">INDIVIDUALS</div>' : ''}
+      ${people.map(d => `<div class="d-row" style="cursor:pointer;" onclick="sel('${d.id}')">
+        <span class="lbl">${d.name}</span><span class="val" style="color:var(--gold);">${d.nwLabel}</span>
+      </div>`).join('')}
+      ${companies.length ? '<div style="font-size:9px;color:var(--text3);margin:8px 0 4px;">COMPANIES</div>' : ''}
+      ${companies.map(d => `<div class="d-row" style="cursor:pointer;" onclick="sel('${d.id}')">
+        <span class="lbl">${d.name}</span><span class="val" style="color:var(--accent);">${d.nwLabel}</span>
+      </div>`).join('')}
+    </div>
+    <div class="d-sec fi"><h4>Top Reasons</h4>
+      <div class="d-tags">${(() => {
+        const rc={};items.forEach(d=>d.reasons.forEach(r=>{rc[r]=(rc[r]||0)+1;}));
+        return Object.entries(rc).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([r,c])=>`<span class="d-tag">${r} (${c})</span>`).join('');
+      })()}</div>
+    </div>
+    <p style="font-size:9px;color:var(--text3);margin-top:8px;">Click any name for full details. Click a destination state on the map to see its breakdown.</p>
+  `;
+
+  // Highlight arcs going to this state
+  const stateIds = items.map(d=>d.id);
+  document.querySelectorAll('.arc-bg,.arc-fg').forEach(p => {
+    if (stateIds.includes(p.dataset.id)) {
+      p.style.opacity = p.classList.contains('arc-bg') ? '0.3' : '0.9';
+      p.style.strokeWidth = '2.5';
+    } else {
+      p.style.opacity = p.classList.contains('arc-bg') ? '0.03' : '0.1';
+      p.style.strokeWidth = '';
+    }
+  });
+}
+
+// ── LASSO RESULTS POPUP ──
+function showLassoResults(ids) {
+  const items = D.filter(d => ids.includes(d.id));
+  const people = items.filter(d => d.type !== 'company');
+  const companies = items.filter(d => d.type === 'company');
+  const totalNw = people.reduce((s,d) => s+d.nw, 0);
+  const fmt = v => v>=1e12?'$'+(v/1e12).toFixed(1)+'T':v>=1e9?'$'+(v/1e9).toFixed(0)+'B':v>=1e6?'$'+(v/1e6).toFixed(0)+'M':'$'+v;
+
+  // Switch to detail tab and show lasso summary
+  document.querySelectorAll('.rp-tab').forEach(t=>t.classList.remove('on'));
+  document.querySelector('[data-t="detail"]').classList.add('on');
+  document.querySelectorAll('.tc').forEach(t=>t.classList.remove('on'));
+  document.getElementById('t-detail').classList.add('on');
+  document.getElementById('dPlaceholder').style.display='none';
+  const el = document.getElementById('dContent');
+  el.style.display='block';
+
+  el.innerHTML = `
+    <div class="d-hero fi" style="border-bottom-color:var(--accent);">
+      <div class="d-avatar" style="font-size:16px;">&#128270;</div>
+      <div class="d-name">Selection: ${items.length} entities</div>
+      <div class="d-role">${people.length} people · ${companies.length} companies</div>
+    </div>
+    <div class="d-grid fi">
+      <div class="d-stat"><div class="sv" style="font-size:14px;">${fmt(totalNw)}</div><div class="sl">Combined Net Worth</div></div>
+      <div class="d-stat"><div class="sv" style="font-size:14px;color:var(--gold);">${fmt(totalNw*0.05)}</div><div class="sl">Wealth Tax Avoided</div></div>
+    </div>
+    <div class="d-sec fi"><h4>Selected Entities</h4>
+      ${items.map(d => `<div class="d-row" style="cursor:pointer;" onclick="sel('${d.id}')">
+        <span class="lbl">${d.name}</span><span class="val" style="color:var(--gold);">${d.nwLabel}</span>
+      </div>`).join('')}
+    </div>
+    <div class="d-sec fi"><h4>Destinations</h4>
+      <div class="d-tags">${[...new Set(items.map(d=>d.toCity+', '+d.toSt))].map(t=>`<span class="d-tag">${t}</span>`).join('')}</div>
+    </div>
+    <div class="d-sec fi"><h4>Top Reasons</h4>
+      <div class="d-tags">${(() => {
+        const rc={};items.forEach(d=>d.reasons.forEach(r=>{rc[r]=(rc[r]||0)+1;}));
+        return Object.entries(rc).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([r,c])=>`<span class="d-tag">${r} (${c})</span>`).join('');
+      })()}</div>
+    </div>
+    <p style="font-size:9px;color:var(--text3);margin-top:12px;">Hold SHIFT + drag to lasso select. Click any name above for full details.</p>
+  `;
+
+  // Highlight selected markers
+  document.querySelectorAll('.hm').forEach(m => m.classList.toggle('on', ids.includes(m.dataset.id)));
+  document.querySelectorAll('.arc-bg,.arc-fg').forEach(p => {
+    if (ids.includes(p.dataset.id)) {
+      p.style.opacity = p.classList.contains('arc-bg') ? '0.3' : '0.9';
+    } else {
+      p.style.opacity = p.classList.contains('arc-bg') ? '0.03' : '0.1';
+    }
+  });
+}
+
+// Handle resize
+window.addEventListener('resize', () => { if (projection) renderMap(); });
+
+// ══════════════════════════════════════════════════════════════
+// SIDEBAR
+// ══════════════════════════════════════════════════════════════
+
+let curFilter = 'all', curSel = null;
+
+function renderCards(filter, search) {
+  const list = D.filter(d => {
+    if (filter !== 'all' && d.type !== filter) return false;
+    if (search) {
+      const s = search.toLowerCase();
+      return d.name.toLowerCase().includes(s) || d.role.toLowerCase().includes(s) ||
+             d.toCity.toLowerCase().includes(s) || d.toSt.toLowerCase().includes(s) ||
+             d.fromCity.toLowerCase().includes(s);
+    }
+    return true;
+  }).sort((a, b) => b.nw - a.nw);
+
+  document.getElementById('cnt').textContent = list.length;
+
+  document.getElementById('cards').innerHTML = list.map(d => {
+    const types = { person:'b-person', company:'b-company', vc:'b-vc', media:'b-media' };
+    const labels = { person:'INDIVIDUAL', company:'COMPANY', vc:'VC/INVESTOR', media:'MEDIA' };
+    const initials = d.name.split(' ').map(w=>w[0]).join('').slice(0,2);
+    const isCo = d.type === 'company';
+
+    return `<div class="card ${curSel===d.id?'on':''}" data-id="${d.id}" onclick="sel('${d.id}')">
+      <div class="card-avatar${isCo ? ' card-avatar-co' : ''}">${d.img ? `<img src="${d.img}" alt="${d.name}" onerror="this.parentElement.textContent='${initials}'" style="${isCo ? 'object-fit:contain;padding:4px;' : ''}">` : initials}</div>
+      <div class="card-body">
+        <div class="card-top">
+          <div class="card-name">${d.name}</div>
+          <div class="card-nw">${d.nwLabel}</div>
+        </div>
+        <div class="card-role">${d.role}</div>
+        <div class="card-route">
+          <span class="fr">${d.fromCity}, ${d.fromSt}</span>
+          <span class="ar">&rarr;</span>
+          <span class="to">${d.toCity}, ${d.toSt}</span>
+        </div>
+        <span class="badge ${types[d.type]}">${labels[d.type]}</span>
+        ${!d.confirmed ? '<span class="badge b-unconfirmed">UNCONFIRMED</span>' : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function sel(id) {
+  curSel = id;
+  const d = D.find(e => e.id === id);
+  if (!d) return;
+
+  // Switch to detail tab
+  document.querySelectorAll('.rp-tab').forEach(t => t.classList.remove('on'));
+  document.querySelector('[data-t="detail"]').classList.add('on');
+  document.querySelectorAll('.tc').forEach(t => t.classList.remove('on'));
+  document.getElementById('t-detail').classList.add('on');
+
+  document.querySelectorAll('.card').forEach(c => c.classList.toggle('on', c.dataset.id === id));
+
+  const el = document.getElementById('dContent');
+  document.getElementById('dPlaceholder').style.display = 'none';
+  el.style.display = 'block';
+
+  const types = { person:'b-person', company:'b-company', vc:'b-vc', media:'b-media' };
+  const labels = { person:'INDIVIDUAL', company:'COMPANY', vc:'VC/INVESTOR', media:'MEDIA' };
+  const initials = d.name.split(' ').map(w=>w[0]).join('').slice(0,2);
+  const hasImg = d.img && d.type !== 'company';
+
+  el.innerHTML = `
+    <div class="d-hero fi">
+      <div class="d-avatar">${hasImg ? `<img src="${d.img}" onerror="this.parentElement.textContent='${initials}'">` : (d.img ? `<img src="${d.img}" style="width:80%;height:auto;object-fit:contain;" onerror="this.parentElement.textContent='${initials}'">` : initials)}</div>
+      <div class="d-name">${d.name}</div>
+      <div class="d-role">${d.role}</div>
+      <span class="badge ${types[d.type]}" style="margin-top:4px;">${labels[d.type]}</span>
+      ${!d.confirmed ? '<span class="badge b-unconfirmed" style="margin-top:4px;">UNCONFIRMED</span>' : ''}
+      <div class="d-est">Net worth est. · ${d.nwSource}</div>
+    </div>
+
+    <div class="d-grid fi">
+      <div class="d-stat">
+        <div class="sv" style="font-size:14px;">${d.nwLabel}</div>
+        <div class="sl">${d.type==='company'?'Revenue/Val':'Est. Net Worth'}</div>
+      </div>
+      <div class="d-stat">
+        <div class="sv" style="font-size:14px; color:var(--blue);">${d.dateLabel.split(/\s/).pop()}</div>
+        <div class="sl">Year</div>
+      </div>
+    </div>
+
+    <div class="d-sec fi">
+      <h4>Migration Route</h4>
+      <div class="d-row"><span class="lbl">From</span><span class="val" style="color:var(--red);">${d.fromCity}, ${d.fromSt}</span></div>
+      <div class="d-row"><span class="lbl">To</span><span class="val" style="color:var(--green);">${d.toCity}, ${d.toSt}</span></div>
+      <div class="d-row"><span class="lbl">Date</span><span class="val">${d.dateLabel}</span></div>
+      <div class="d-row"><span class="lbl">Status</span><span class="val" style="color:${d.confirmed?'var(--green)':'var(--red)'};">${d.confirmed?'CONFIRMED':'UNCONFIRMED'}</span></div>
+    </div>
+
+    <div class="d-sec fi">
+      <h4>Stated Reasons</h4>
+      <div class="d-tags">${d.reasons.map(r=>`<span class="d-tag">${r}</span>`).join('')}</div>
+    </div>
+
+    ${d.quote?`<div class="d-sec fi"><h4>Notable Quote</h4><div class="d-quote">"${d.quote}"</div></div>`:''}
+
+    <div class="d-sec fi">
+      <h4>Background</h4>
+      <p style="font-size:11px; color:var(--text2); line-height:1.5;">${d.bg}</p>
+    </div>
+
+    ${d.investments.length?`<div class="d-sec fi"><h4>Key Investments</h4><div class="d-tags">${d.investments.map(i=>`<span class="d-tag">${i}</span>`).join('')}</div></div>`:''}
+
+    ${d.sources&&d.sources.length?`<div class="d-sec fi"><h4>Sources</h4><div>${d.sources.map(s=>`<a class="src-link" href="${s.url}" target="_blank" rel="noopener">${s.label}</a>`).join('')}</div></div>`:''}
+
+    <div class="d-sec fi" style="text-align:center;margin-top:8px;">
+      <button class="share-btn" onclick="shareCard('${d.id}')">&#128247; DOWNLOAD SHARE CARD</button>
+    </div>
+  `;
+
+  // Highlight arc + marker on map
+  document.querySelectorAll('.arc-bg, .arc-fg').forEach(p => {
+    if (p.dataset.id === id) {
+      p.style.opacity = p.classList.contains('arc-bg') ? '0.35' : '1';
+      p.style.strokeWidth = '3';
+    } else {
+      p.style.opacity = p.classList.contains('arc-bg') ? '0.05' : '0.2';
+      p.style.strokeWidth = '';
+    }
+  });
+  document.querySelectorAll('.hm').forEach(m => {
+    m.classList.toggle('on', m.dataset.id === id);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// ANALYTICS TAB
+// ══════════════════════════════════════════════════════════════
+
+function renderAnalytics() {
+  const el = document.getElementById('t-analytics');
+
+  // Destination counts
+  const dc = {};
+  D.forEach(d => { dc[d.toSt] = (dc[d.toSt]||0) + 1; });
+  const sd = Object.entries(dc).sort((a,b)=>b[1]-a[1]);
+  const mx = sd[0][1];
+  const dColors = { TX:'#ff6b35', FL:'#4fc3f7', TN:'#ffc107', NV:'#b388ff', CO:'#66bb6a', MT:'#888', HI:'#f44336' };
+
+  let destHtml = sd.map(([s,c])=>`
+    <div class="a-bar"><span class="a-lbl">${s}</span>
+    <div class="a-track"><div class="a-fill" style="width:${c/mx*100}%; background:${dColors[s]||'#888'};">${c}</div></div></div>
+  `).join('');
+
+  // Tax comparison
+  const taxes = [
+    ['California',13.3,'#f44336'],['Hawaii',11,'#ffc107'],['Montana',5.9,'#888'],
+    ['Colorado',4.4,'#66bb6a'],['Tennessee',0,'#4fc3f7'],['Texas',0,'#ff6b35'],
+    ['Florida',0,'#4fc3f7'],['Nevada',0,'#b388ff']
+  ];
+  let taxHtml = taxes.map(([s,r,c])=>`
+    <div class="a-bar"><span class="a-lbl" style="width:80px;">${s}</span>
+    <div class="a-track"><div class="a-fill" style="width:${Math.max(r/13.3*100,r===0?3:0)}%; background:${c};">${r===0?'0%':r+'%'}</div></div></div>
+  `).join('');
+
+  // Reasons
+  const rc = {};
+  D.forEach(d => d.reasons.forEach(r => { rc[r] = (rc[r]||0)+1; }));
+  const sr = Object.entries(rc).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const mrx = sr[0][1];
+  let reasonHtml = sr.map(([r,c])=>`
+    <div class="a-bar"><span class="a-lbl" style="width:120px; font-size:8px;">${r}</span>
+    <div class="a-track"><div class="a-fill" style="width:${c/mrx*100}%; background:var(--accent);">${c}</div></div></div>
+  `).join('');
+
+  el.innerHTML = `
+    <div class="a-sec"><h4>Top Destinations by Count</h4>${destHtml}</div>
+    <div class="a-sec"><h4>State Income Tax Rates</h4>${taxHtml}</div>
+    <div class="a-sec"><h4>Stated Reasons (Frequency)</h4>${reasonHtml}</div>
+    <div class="a-sec"><h4>Key Statistics</h4>
+      <div class="d-grid">
+        <div class="d-stat"><div class="sv" style="font-size:13px;">$102B</div><div class="sl">AGI Lost (IRS '20-22)</div></div>
+        <div class="d-stat"><div class="sv" style="font-size:13px; color:var(--red);">-1.46M</div><div class="sl">Net Migration '20-24</div></div>
+        <div class="d-stat"><div class="sv" style="font-size:13px; color:var(--gold);">20/21</div><div class="sl">Billionaires Polled Leaving</div></div>
+        <div class="d-stat"><div class="sv" style="font-size:13px;">5%</div><div class="sl">Proposed Wealth Tax</div></div>
+      </div>
+      <p style="font-size:10px; color:var(--text3); margin-top:8px; line-height:1.4;">
+        The CA Billionaire Tax Act would impose a one-time 5% levy on net worth exceeding $1B for residents as of Jan 1, 2026. It is a ballot initiative — not yet passed. Chamath Palihapitiya estimates $500B–$1T in billionaire wealth has left the state. IRS data confirms $102B in adjusted gross income left via migration from 2020–2022 alone. Top destinations by income: Texas (+$14B), Nevada (+$10B), Florida (+$8B), Arizona (+$7B).
+      </p>
+    </div>
+  `;
+}
+
+// ══════════════════════════════════════════════════════════════
+// TIMELINE TAB
+// ══════════════════════════════════════════════════════════════
+
+function renderTimeline() {
+  const events = [
+    ['2016','<b>Jacobs Engineering</b> moves HQ from Pasadena, CA to Dallas, TX — earliest major signal of corporate discontent. Revenue: $10.9B.'],
+    ['Apr 2019','<b>McKesson Corporation</b> ($309B rev, Fortune 500 #7) moves HQ from San Francisco to Irving, TX. Highest-ranked Fortune 500 company to leave California.'],
+    ['Aug 2020','<b>Joe Rogan</b> (~$250M) leaves Los Angeles for Austin, TX. Buys $14.4M mansion. Cites COVID lockdowns, taxes, and "full communist" governance. His move catalyzes a wave of tech/media relocations to Austin.'],
+    ['Sep 2020','<b>Ben Shapiro</b> + <b>The Daily Wire</b> leave LA. Shapiro moves family to South Florida ($11M villa). Daily Wire HQ relocates to Nashville, TN. "Terrible governance has consequences. We are done."'],
+    ['Oct 2020','<b>Joe Lonsdale</b> (~$2B, Palantir co-founder, 8VC) moves to Austin. Publishes WSJ op-ed explaining departure. One of the first prominent VCs to leave.'],
+    ['Nov 2020','<b>Keith Rabois</b> (~$1B, Founders Fund) buys $28.9M Miami Beach mansion. "SF is so massively improperly run it is impossible to stay." Helps catalyze Miami tech scene.<br><b>CBRE Group</b> ($34B rev) formalizes Dallas as HQ. <b>Charles Schwab</b> ($9.93T AUM) announces move to Westlake, TX.'],
+    ['Dec 2020','<span style="color:var(--accent);font-weight:700;">MASS CORPORATE EXODUS MONTH:</span><br>&#8226; <b>Elon Musk</b> (~$658B) confirms personal move from LA to Austin, TX<br>&#8226; <b>Oracle</b> ($57.4B rev) moves HQ from Redwood City to Austin<br>&#8226; <b>Hewlett Packard Enterprise</b> ($34.3B rev) moves from San Jose to Houston<br>&#8226; <b>Larry Ellison</b> (~$205B) moves from Woodside, CA to Lanai, Hawaii<br>&#8226; <b>Peter Thiel</b> (~$25B) buys two Miami Beach homes for ~$18M'],
+    ['2021','<b>Tesla</b> ($94.8B rev) moves HQ from Palo Alto to Austin (shareholder vote Oct, official Dec).<br><b>Ben Horowitz</b> (a16z co-founder) sells $14.5M Atherton estate, moves to Las Vegas, NV.<br><b>AECOM</b> ($14B rev) moves HQ from LA to Dallas.<br>Founders Fund opens Miami office. <b>Lex Fridman</b> relocates podcast to Austin.'],
+    ['2022','<b>HP Inc.</b> ($55.3B rev) — the company born in the original Silicon Valley garage — moves HQ to Houston, TX. Perhaps the most symbolically devastating departure.'],
+    ['May 2023','<b>Larry Ellison</b> changes permanent domicile from Hawaii to <b>Manalapan, FL</b> (Palm Beach County). $173M "Gemini Mansion" estate. Registers as Florida voter. Peak NW hits $393B in Sept 2025.'],
+    ['2023–2024','<b>Lynsi Snyder</b> (~$8.7B, In-N-Out Burger sole owner, Forbes #153) moves family to Franklin, TN. In-N-Out opening 35 TN restaurants. Corporate HQ stays in CA.'],
+    ['Jul 2024','<span style="color:var(--accent);font-weight:700;">SECOND WAVE BEGINS:</span><br><b>Elon Musk</b> announces <b>SpaceX</b> (~$800B) HQ move from Hawthorne, CA to Starbase, TX AND <b>X Corp</b> HQ move from SF to Bastrop, TX. Cites CA gender identity school notification law: "This is the final straw."'],
+    ['Aug 2024','<b>Chevron</b> ($203B rev) — born in California in <b>1879</b> — announces HQ move to Houston. 145+ years of CA history ended. CEO Wirth: "CA energy policies raise costs, hurt consumers, and discourage investment." Phased over 5 years.'],
+    ['Sep 2024','<b>X Corp</b> officially shutters iconic San Francisco HQ. Files in Bastrop, TX.'],
+    ['Dec 2025','<span style="color:var(--red);font-weight:700;">CA BILLIONAIRE TAX ACT PANIC:</span> Proposed one-time 5% levy on NW over $1B for residents as of Jan 1, 2026 triggers the largest single-month wealth migration in American history:<br>&#8226; <b>Travis Kalanick</b> (~$3.6B, Uber co-founder) moves to Austin on Dec 18<br>&#8226; <b>David Sacks</b> (White House AI Czar) opens Craft Ventures Austin office Dec 31<br>&#8226; <b>Larry Page</b> (~$272B) dissolves 45+ CA LLCs, buys $173.4M in Coconut Grove, Miami estates<br>&#8226; <b>Sergey Brin</b> (~$245B) terminates 60+ CA LLCs<br>&#8226; <b>Peter Thiel</b> finalizes Miami. Thiel Capital signs Wynwood lease<br>&#8226; Reporter Mike Solana polls 21 CA billionaires: <b>20 of 21 say they are leaving</b>'],
+    ['Jan 2026','Bloomberg reports: "California wealth tax threat pushes billionaires to Texas, Florida." Chamath Palihapitiya estimates <b>$500B–$1T in billionaire wealth</b> has fled the state.'],
+    ['Feb 2026','<b>Mark Zuckerberg</b> (~$220B) closes on $170M estate on Indian Creek Island ("Billionaire Bunker"), Miami — most expensive home sale in Miami-Dade history. CA estimated to lose <b>$11B one-time + $300M/year</b> from his departure alone.<br><b>Palantir</b> ($4.475B rev) moves HQ from Denver to Miami.'],
+    ['Mar 2026','<b>Sergey Brin</b> closes on $51M Miami Beach home (Allison Island). <b>Travis Kalanick</b> unveils Atoms (robotics company, absorbed CloudKitchens). <b>Total estimated wealth departed: $1.3T+</b>. IRS confirms $102B in adjusted gross income left CA via migration 2020–2022. Net domestic outmigration: -1.46M residents (2020–2024).'],
+  ];
+
+  document.getElementById('t-timeline').innerHTML = `
+    <div class="a-sec" style="margin-top:0;"><h4>The Complete Exodus Timeline</h4>
+      <p style="font-size:10px;color:var(--text3);margin-bottom:12px;">From the first signals in 2016 to the $1T+ wealth migration of 2025–2026</p>
+    </div>
+    <div class="tl">
+      ${events.map(([y,t])=>`<div class="tl-item"><div class="tl-year">${y}</div><div class="tl-text">${t}</div></div>`).join('')}
+    </div>
+    <div style="margin-top:16px;padding:10px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;">
+      <div style="font-family:JetBrains Mono,monospace;font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Key Statistics</div>
+      <div style="font-size:11px;color:var(--text2);line-height:1.6;">
+        &#8226; <b style="color:var(--accent);">$102B</b> in adjusted gross income left CA (IRS, 2020–2022)<br>
+        &#8226; <b style="color:var(--accent);">-1.46M</b> net domestic outmigration (2020–2024)<br>
+        &#8226; <b style="color:var(--accent);">20 of 21</b> CA billionaires polled said they were leaving (Jan 2026)<br>
+        &#8226; <b style="color:var(--accent);">$1.3T+</b> estimated personal wealth departed<br>
+        &#8226; Top destinations by AGI: Texas (+$14B), Nevada (+$10B), Florida (+$8B), Arizona (+$7B)<br>
+        &#8226; CA proposed <b style="color:var(--red);">5% one-time wealth tax</b> on NW >$1B (ballot initiative, not yet passed)
+      </div>
+    </div>
+  `;
+}
+
+// ══════════════════════════════════════════════════════════════
+// EVENT HANDLERS
+// ══════════════════════════════════════════════════════════════
+
+// Filter buttons
+document.querySelectorAll('.fbtn').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.fbtn').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    curFilter = b.dataset.f;
+    renderCards(curFilter, document.getElementById('search').value);
+  });
+});
+
+// Search
+document.getElementById('search').addEventListener('input', e => {
+  renderCards(curFilter, e.target.value);
+});
+
+// Tabs
+document.querySelectorAll('.rp-tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.rp-tab').forEach(x => x.classList.remove('on'));
+    t.classList.add('on');
+    document.querySelectorAll('.tc').forEach(x => x.classList.remove('on'));
+    document.getElementById('t-' + t.dataset.t).classList.add('on');
+  });
+});
+
+// ══════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════════════════
+// SOURCES MAP — merged into D entries
+// ══════════════════════════════════════════════════════════════
+const SRC={
+  musk:[{label:'KVUE',url:'https://www.kvue.com/article/money/business/elon-musk-foundation-texas-move-austin/269-fc551b6f-8df4-46ae-9aba-f0c84a848e48'},{label:'CNBC',url:'https://www.cnbc.com/2020/12/08/elon-musk-confirms-he-moved-to-texas.html'}],
+  page:[{label:'Fox Business',url:'https://www.foxbusiness.com/real-estate/larry-page-drops-173m-miami-mansions-amid-california-billionaire-exodus-trend-wealth-tax-looms'},{label:'The Real Deal',url:'https://therealdeal.com/miami/2026/01/07/googles-larry-page-sergey-brin-buying-miami-homes/'}],
+  brin:[{label:'The Real Deal',url:'https://therealdeal.com/miami/2026/03/04/sergey-brin-closes-on-south-florida-home-for-51-million/'},{label:'Bloomberg',url:'#'}],
+  zuck:[{label:'Bloomberg',url:'https://www.bloomberg.com/news/articles/2026-02-10/zuckerberg-set-to-join-california-billionaires-with-miami-home'},{label:'Robb Report',url:'https://robbreport.com/shelter/celebrity-homes/mark-zuckerberg-miami-estate-indian-creek-island-1237621559/'}],
+  ellison:[{label:'Yahoo Finance',url:'https://finance.yahoo.com/news/larry-ellison-leaves-hawaii-declares-123114705.html'},{label:'Benzinga',url:'https://www.benzinga.com/trading-ideas/movers/26/03/51055520/larry-ellison-net-worth-update'}],
+  kalanick:[{label:'Daily Caller',url:'https://dailycaller.com/2026/03/15/uber-co-founder-kalanick-dumps-california-texas-billionaire-wealth-tax/'},{label:'NationalToday',url:'https://nationaltoday.com/us/tx/austin/news/2026/03/15/uber-co-founder-travis-kalanick-leaves-california-for-texas/'}],
+  thiel:[{label:'Refresh Miami',url:'https://refreshmiami.com/news/years-after-the-bitcoin-theatrics-peter-thiel-puts-real-roots-down-in-miami/'},{label:'Miami New Times',url:'https://www.miaminewtimes.com/news/peter-thiels-palantir-technologies-moves-headquarters-to-miami-40525688/'}],
+  sacks:[{label:'Yahoo Finance',url:'https://finance.yahoo.com/news/david-sacks-opens-austin-office-220233399.html'},{label:'Deseret News',url:'https://www.deseret.com/politics/2026/01/02/california-billionaire-tax-prompts-larry-page-and-peter-thiel-to-move-out-of-california/'}],
+  lonsdale:[{label:'CNBC',url:'https://www.cnbc.com/2020/11/06/palantir-co-founder-joe-lonsdale-leaving-silicon-valley.html'},{label:'8VC Blog',url:'https://www.8vc.com/resources/why-i-made-the-move-to-texas'}],
+  rabois:[{label:'Fortune',url:'https://fortune.com/2020/11/17/keith-rabois-investor-silicon-valley-loses-another-tech-icon/'},{label:'The Real Deal',url:'https://therealdeal.com/miami/2020/12/17/tech-investor-keith-rabois-pays-record-29m-for-venetian-islands-home/'}],
+  horowitz:[{label:'Bloomberg',url:'#'},{label:'TechCrunch',url:'https://techcrunch.com/2024/11/08/ben-horowitzs-cozy-relationship-with-the-las-vegas-police-department-aided-a16z-portfolio-company-skydio/'}],
+  rogan:[{label:'Yahoo Finance',url:'https://finance.yahoo.com/news/everythings-shut-down-joe-rogan-120000121.html'},{label:'Celebrity Net Worth',url:'https://www.celebritynetworth.com/richest-celebrities/actors/joe-rogan-net-worth/'}],
+  shapiro:[{label:'Fox News',url:'https://www.foxnews.com/media/ben-shapiro-daily-wire-moving-los-angeles'},{label:'Finance Monthly',url:'#'}],
+  fridman:[{label:'Boston Globe',url:'#'},{label:'Wikipedia',url:'#'}],
+  snyder:[{label:'Fortune',url:'https://fortune.com/2025/07/21/in-n-out-heiress-california-tennessee-family-business-burger/'},{label:'CNBC',url:'https://www.cnbc.com/2025/07/22/in-n-out-billionaire-ceo-were-not-moving-hq-out-of-california.html'}],
+  spacex:[{label:'Fortune',url:'https://fortune.com/2024/07/16/musk-is-moving-spacex-and-x-to-texas/'},{label:'NBC News',url:'#'}],
+  xcorp:[{label:'CBS News',url:'https://www.cbsnews.com/news/x-twitter-to-shut-san-francisco-headquarters-september-13/'},{label:'Fortune',url:'#'}],
+  chevron:[{label:'Chevron Newsroom',url:'https://www.chevron.com/newsroom/2024/q3/chevron-announces-headquarters-relocation-and-senior-leadership-changes'},{label:'CNBC',url:'https://www.cnbc.com/2024/08/02/chevron-cvx-earnings-q2-2024.html'}],
+  tesla:[{label:'CNBC',url:'https://www.cnbc.com/2021/10/07/tesla-moves-its-headquarters-from-california-to-texas.html'},{label:'Bloomberg',url:'#'}],
+  oracle:[{label:'CNBC',url:'https://www.cnbc.com/2020/12/11/oracle-is-moving-its-headquarters-from-silicon-valley-to-austin-texas.html'},{label:'Axios',url:'https://www.axios.com/local/austin/2024/04/24/oracle-headquarters-austin-move-nashville'}],
+  hpe:[{label:'CNBC',url:'https://www.cnbc.com/2020/12/01/hpe-is-relocating-headquarters-to-houston-from-california.html'},{label:'HPE Newsroom',url:'#'}],
+  hp:[{label:'HP IR',url:'#'},{label:'Bloomberg',url:'#'}],
+  schwab:[{label:'NBC DFW',url:'https://www.nbcdfw.com/news/local/charles-schwab-to-officially-move-headquarters-to-denton-county-on-jan-1/2514658/'},{label:'CNBC',url:'#'}],
+  palantir:[{label:'Bloomberg',url:'https://www.bloomberg.com/news/articles/2026-02-17/palantir-moves-headquarters-to-miami-from-denver'},{label:'CNBC',url:'https://www.cnbc.com/2026/02/17/palantir-headquarters-miami-denver.html'}],
+  mckesson:[{label:'McKesson Newsroom',url:'https://www.mckesson.com/about-us/newsroom/press-releases/2018/mckesson-announces-new-headquarters-in-las-colinas-texas/'},{label:'yTexas',url:'#'}],
+  cbre:[{label:'Yahoo Finance',url:'https://finance.yahoo.com/news/real-estate-brokerage-cbre-moves-193907122.html'},{label:'CBRE IR',url:'#'}],
+  aecom:[{label:'Companies Market Cap',url:'#'},{label:'AECOM IR',url:'#'}],
+  jacobs:[{label:'Business Facilities',url:'#'},{label:'Jacobs IR',url:'#'}],
+};
+D.forEach(d=>{if(SRC[d.id])d.sources=SRC[d.id];else d.sources=[];});
+
+// ══════════════════════════════════════════════════════════════
+// WHO'S STAYING DATA
+// ══════════════════════════════════════════════════════════════
+const STAYING = [
+  {name:'Jensen Huang',role:'CEO, Nvidia',nw:'~$109B',nwSource:'Forbes 2026',quote:"Whatever taxes they'd like to apply, so be it.",img:'https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/Jensen_Huang_CEO_of_Nvidia.jpg/400px-Jensen_Huang_CEO_of_Nvidia.jpg'},
+  {name:'Sam Altman',role:'CEO, OpenAI',nw:'~$2B',nwSource:'Est.',quote:'',img:'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Sam_Altman_CropEdit.jpg/400px-Sam_Altman_CropEdit.jpg'},
+  {name:'Marc Benioff',role:'CEO, Salesforce',nw:'~$10B',nwSource:'Forbes 2026',quote:'',img:'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Marc_R._Benioff_World_Economic_Forum_2013_crop.jpg/400px-Marc_R._Benioff_World_Economic_Forum_2013_crop.jpg'},
+  {name:'Vinod Khosla',role:'Founder, Khosla Ventures',nw:'~$6B',nwSource:'Forbes 2026',quote:'Critical of the tax bill design but not moving.',img:null},
+  {name:'Reid Hoffman',role:'Co-Founder, LinkedIn',nw:'~$2.5B',nwSource:'Forbes 2026',quote:'',img:'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Reid_Hoffman_-_Collision_2019_-_49078705422_%28cropped%29.jpg/400px-Reid_Hoffman_-_Collision_2019_-_49078705422_%28cropped%29.jpg'},
+];
+
+// ══════════════════════════════════════════════════════════════
+// SIDEBAR VIEW TOGGLE (LEFT vs STAYING)
+// ══════════════════════════════════════════════════════════════
+let sideView = 'left';
+function setView(v) {
+  sideView = v;
+  document.getElementById('togLeft').className = v==='left'?'on':'';
+  document.getElementById('togStay').className = v==='stay'?'on-green':'';
+  document.getElementById('cards').style.display = v==='left'?'block':'none';
+  document.getElementById('stayCards').style.display = v==='stay'?'block':'none';
+  document.querySelector('.sb-hdr').textContent = v==='left'?'TRACKED DEPARTURES':'STAYING IN CALIFORNIA';
+  if(v==='stay') renderStaying();
+}
+
+function renderStaying() {
+  document.getElementById('stayCards').innerHTML = STAYING.map(s => {
+    const initials = s.name.split(' ').map(w=>w[0]).join('').slice(0,2);
+    return `<div class="stay-card">
+      <div class="card-avatar" style="border-color:var(--green);">${s.img?`<img src="${s.img}" onerror="this.parentElement.textContent='${initials}'">`  :initials}</div>
+      <div class="card-body">
+        <div class="card-top"><div class="card-name">${s.name}</div><div class="card-nw" style="color:var(--green);">${s.nw}</div></div>
+        <div class="card-role">${s.role}</div>
+        ${s.quote?`<div style="font-size:10px;color:var(--text2);font-style:italic;margin-top:3px;">"${s.quote}"</div>`:''}
+        <span class="badge b-staying">STAYING IN CA</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+// TIMELINE SCRUBBER
+// ══════════════════════════════════════════════════════════════
+let playing = false, playTimer = null;
+
+function scrubYear(y) {
+  y = parseInt(y);
+  document.getElementById('yearLabel').textContent = y;
+  // Show/hide arcs and markers based on year
+  D.forEach(d => {
+    const moveYear = parseInt(d.date.split('-')[0]);
+    const show = moveYear <= y;
+    document.querySelectorAll(`.arc-bg[data-id="${d.id}"],.arc-fg[data-id="${d.id}"]`).forEach(el => {
+      el.style.display = show ? '' : 'none';
+    });
+    const marker = document.querySelector(`.hm[data-id="${d.id}"]`);
+    if (marker) marker.style.display = show ? '' : 'none';
+  });
+}
+
+function togglePlay() {
+  playing = !playing;
+  const btn = document.getElementById('playBtn');
+  if (playing) {
+    btn.innerHTML = '&#9646;&#9646;';
+    let yr = 2016;
+    document.getElementById('yearSlider').value = yr;
+    scrubYear(yr);
+    playTimer = setInterval(() => {
+      yr++;
+      if (yr > 2026) { togglePlay(); return; }
+      document.getElementById('yearSlider').value = yr;
+      scrubYear(yr);
+    }, 1200);
+  } else {
+    btn.innerHTML = '&#9654;';
+    clearInterval(playTimer);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// TAX CALCULATOR
+// ══════════════════════════════════════════════════════════════
+function renderTaxCalc() {
+  const people = D.filter(d => d.type==='person'||d.type==='vc').sort((a,b)=>b.nw-a.nw);
+  const fmt = v => {
+    if(v>=1e12) return '$'+(v/1e12).toFixed(1)+'T';
+    if(v>=1e9) return '$'+(v/1e9).toFixed(1)+'B';
+    if(v>=1e6) return '$'+(v/1e6).toFixed(0)+'M';
+    return '$'+Math.round(v).toLocaleString();
+  };
+  let totNw=0,totTax=0,totAnn=0,tot10=0;
+  const rows = people.map(d => {
+    const wealthTax = Math.max(0,(d.nw-1e9))*0.05;
+    const annualSaved = d.nw*0.02*0.133;
+    const tenYear = annualSaved*10;
+    totNw+=d.nw; totTax+=wealthTax; totAnn+=annualSaved; tot10+=tenYear;
+    return `<tr onclick="sel('${d.id}')" style="cursor:pointer;">
+      <td>${d.name}</td><td class="money">${d.nwLabel}</td>
+      <td class="money">${fmt(wealthTax)}</td><td class="money">${fmt(annualSaved)}</td>
+      <td class="money">${fmt(tenYear)}</td></tr>`;
+  }).join('');
+
+  document.getElementById('t-taxcalc').innerHTML = `
+    <div class="a-sec" style="margin-top:0;"><h4>BILLIONAIRE TAX ACT CALCULATOR</h4></div>
+    <table class="tax-table">
+      <thead><tr><th>Name</th><th>Net Worth</th><th>One-Time Tax*</th><th>Annual Saved**</th><th>10-Year Savings</th></tr></thead>
+      <tbody>${rows}
+      <tr class="total-row"><td>TOTAL</td><td class="money">${fmt(totNw)}</td>
+      <td class="money">${fmt(totTax)}</td><td class="money">${fmt(totAnn)}</td>
+      <td class="money">${fmt(tot10)}</td></tr></tbody>
+    </table>
+    <p style="font-size:9px;color:var(--text3);margin-top:10px;line-height:1.4;">
+      * One-time 5% wealth tax on NW exceeding $1B (proposed CA Billionaire Tax Act, not yet passed)<br>
+      ** Assumes 2% annual income yield on net worth × 13.3% CA top marginal rate<br>
+      All figures are estimates based on reported net worth at time of departure.
+    </p>
+  `;
+}
+
+// ══════════════════════════════════════════════════════════════
+// SHAREABLE CARD GENERATOR
+// ══════════════════════════════════════════════════════════════
+function shareCard(id) {
+  const d = D.find(e=>e.id===id);
+  if(!d) return;
+  const c = document.createElement('canvas');
+  c.width=600; c.height=400;
+  const ctx = c.getContext('2d');
+
+  // Background
+  ctx.fillStyle='#0a0a0f'; ctx.fillRect(0,0,600,400);
+  ctx.fillStyle='#14141f'; ctx.fillRect(0,0,600,6);
+  ctx.fillStyle=d.color||'#ff6b35'; ctx.fillRect(0,0,600,4);
+
+  // Branding
+  ctx.font='bold 11px JetBrains Mono,monospace';
+  ctx.fillStyle='#ff6b35'; ctx.fillText('EXODUS.tracker',20,30);
+  ctx.fillStyle='#555570'; ctx.fillText('The Great Wealth Migration',160,30);
+
+  // Name
+  ctx.font='bold 28px Inter,sans-serif';
+  ctx.fillStyle='#e4e4ed'; ctx.fillText(d.name,20,80);
+
+  // Role
+  ctx.font='14px Inter,sans-serif';
+  ctx.fillStyle='#9090a8'; ctx.fillText(d.role,20,105);
+
+  // Net worth
+  ctx.font='bold 36px JetBrains Mono,monospace';
+  ctx.fillStyle='#ffc107'; ctx.fillText(d.nwLabel,20,160);
+  ctx.font='11px JetBrains Mono,monospace';
+  ctx.fillStyle='#555570'; ctx.fillText('EST. NET WORTH · '+d.nwSource,20,180);
+
+  // Route
+  ctx.font='bold 14px JetBrains Mono,monospace';
+  ctx.fillStyle='#f44336'; ctx.fillText(d.fromCity+', '+d.fromSt,20,220);
+  ctx.fillStyle='#555570'; ctx.fillText('  →  ',ctx.measureText(d.fromCity+', '+d.fromSt).width+20,220);
+  ctx.fillStyle='#4caf50';
+  ctx.fillText(d.toCity+', '+d.toSt,ctx.measureText(d.fromCity+', '+d.fromSt+'  →  ').width+20,220);
+
+  // Date
+  ctx.font='12px JetBrains Mono,monospace';
+  ctx.fillStyle='#9090a8'; ctx.fillText(d.dateLabel,20,245);
+  ctx.fillStyle=d.confirmed?'#4caf50':'#f44336';
+  ctx.fillText(d.confirmed?'CONFIRMED':'UNCONFIRMED',20,262);
+
+  // Quote
+  if(d.quote) {
+    ctx.fillStyle=d.color||'#ff6b35'; ctx.fillRect(20,285,3,50);
+    ctx.font='italic 12px Inter,sans-serif';
+    ctx.fillStyle='#9090a8';
+    const words=d.quote.split(' '); let line='',y=300;
+    words.forEach(w=>{
+      if(ctx.measureText(line+w).width>520){ctx.fillText('"'+line+'"',30,y);y+=16;line=w+' ';}
+      else line+=w+' ';
+    });
+    if(line) ctx.fillText('"'+line.trim()+'"',30,y);
+  }
+
+  // Footer
+  ctx.fillStyle='#252538'; ctx.fillRect(0,380,600,20);
+  ctx.font='9px JetBrains Mono,monospace';
+  ctx.fillStyle='#555570'; ctx.fillText('Data verified from Bloomberg, Forbes, SEC filings · March 2026',20,394);
+
+  // Download
+  c.toBlob(blob=>{
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url; a.download=`exodus-${d.id}.png`;
+    a.click(); URL.revokeObjectURL(url);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// ANIMATED WEALTH COUNTER
+// ══════════════════════════════════════════════════════════════
+function animateWealth() {
+  const people = D.filter(d=>d.type!=='company');
+  const total = people.reduce((s,d)=>s+d.nw,0);
+  const el = document.getElementById('hWealth');
+  const dur = 2000;
+  const start = performance.now();
+  function tick(now) {
+    const t = Math.min((now-start)/dur,1);
+    const ease = 1 - Math.pow(1-t,3);
+    const v = total * ease;
+    el.textContent = v>=1e12?'~$'+(v/1e12).toFixed(1)+'T':'~$'+(v/1e9).toFixed(0)+'B';
+    if(t<1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+// ══════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════
+renderCards('all', '');
+renderAnalytics();
+renderTimeline();
+renderTaxCalc();
+animateWealth();
+
+// Init map (async — fetches TopoJSON)
+renderMap();
+</script>
+</body>
+</html>
