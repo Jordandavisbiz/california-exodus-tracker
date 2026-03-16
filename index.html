@@ -1629,117 +1629,173 @@ function getMetro(city, st) {
 }
 
 function renderMarkers() {
-  // Remove old HTML markers
+  // Leave the HTML markers-layer div empty (referenced by lasso code)
   document.getElementById('markersLayer').innerHTML = '';
 
   const tooltip = document.getElementById('tooltip');
-  const t = currentTransform;
 
-  // Remove old SVG marker group if exists
+  // Remove old marker group and rebuild inside the zoom-transformed #mapG
+  // Markers live in SVG-space so they transform with pan/zoom automatically —
+  // no manual repositioning on zoom events needed.
   d3.select('#markerGroup').remove();
-  // Create marker group INSIDE the zoom-transformed <g> so coords match exactly
   const mg = d3.select('#mapG').append('g').attr('id','markerGroup');
 
+  // Group entries by metro area so nearby cities cluster together
   const groups = {};
   D.forEach(d => {
     const p = projection([d.tLng, d.tLat]);
     if (!p) return;
-    // Raw projection coords — no transform needed, the parent <g> handles zoom
-    const tx = p[0];
-    const ty = p[1];
     const metro = getMetro(d.toCity, d.toSt);
     if (!groups[metro]) groups[metro] = { xs:[], ys:[], items:[] };
-    groups[metro].xs.push(tx);
-    groups[metro].ys.push(ty);
-    groups[metro].items.push({...d, tx, ty});
-  });
-  // Average center
-  Object.values(groups).forEach(g => {
-    g.x = g.xs.reduce((a,b)=>a+b,0)/g.xs.length;
-    g.y = g.ys.reduce((a,b)=>a+b,0)/g.ys.length;
+    groups[metro].xs.push(p[0]);
+    groups[metro].ys.push(p[1]);
+    groups[metro].items.push({ ...d, px: p[0], py: p[1] });
   });
 
-  Object.values(groups).forEach(g => {
-    const ppl = g.items.filter(d=>d.type!=='company').sort((a,b)=>b.nw-a.nw);
-    const cos = g.items.filter(d=>d.type==='company').sort((a,b)=>b.nw-a.nw);
-    const total = g.items.length;
+  // Compute the average center of each metro cluster
+  Object.values(groups).forEach(grp => {
+    grp.cx = grp.xs.reduce((a,b)=>a+b,0) / grp.xs.length;
+    grp.cy = grp.ys.reduce((a,b)=>a+b,0) / grp.ys.length;
+  });
 
-    // Fixed pixel sizes
-    const pSz = 24;
-    const coW = 60, coH = 30;
+  // Layout constants (small so they don't obscure the map)
+  const R   = 12;    // circle radius for people
+  const coW = 30;    // company logo rect width
+  const coH = 15;    // company logo rect height
+  const gap = 28;    // horizontal spacing between marker centers
+  const rowH = 28;   // vertical spacing between rows
 
-    // People: always use enough columns so max 2 rows
-    const pCols = Math.min(Math.ceil(ppl.length / 2), ppl.length);
-    const cCols = Math.min(3, cos.length || 1);
+  Object.values(groups).forEach(grp => {
+    const ppl = grp.items.filter(d => d.type !== 'company').sort((a,b) => b.nw - a.nw);
+    const cos = grp.items.filter(d => d.type === 'company').sort((a,b) => b.nw - a.nw);
 
-    // Gaps: enough to never overlap
-    const pGap = pSz + 10;   // 34px between circle centers
-    const cGapH = coW + 10;  // 70px between company logo centers
-    const pRowH = pSz + 12;  // 36px between row centers
-    const cRowH = coH + 12;  // 42px between company rows
-    const sz = pSz;
-    const pRows = Math.ceil(ppl.length / pCols);
-    const cRows = Math.ceil(cos.length / cCols);
-    const secGap = (ppl.length && cos.length) ? 10 : 0;
-    // Start grid BELOW the city center point (not centered on it)
-    let yStart = g.y + 16;
+    // People on top rows, companies below; grid starts just below the metro center
+    const pCols = ppl.length > 0 ? Math.min(Math.ceil(ppl.length / 2), ppl.length) : 1;
+    const cCols = cos.length  > 0 ? Math.min(3, cos.length) : 1;
+    const pRows = ppl.length > 0 ? Math.ceil(ppl.length / pCols) : 0;
+    const secGap = (ppl.length && cos.length) ? 6 : 0;
 
+    let yStart = grp.cy + 14;  // start below the metro dot
+
+    // ── People: circle with clipped headshot image ──
     ppl.forEach((d, i) => {
-      const r = Math.floor(i / pCols), c = i % pCols;
-      const rc = Math.min(pCols, ppl.length - r * pCols);
-      const px = g.x + (c - (rc - 1) / 2) * pGap;
-      const py = yStart + r * pRowH;
-      mkMarker(d, px, py, pSz, pSz, false, mg, tooltip, t);
+      const row = Math.floor(i / pCols);
+      const col = i % pCols;
+      // Center each row independently
+      const rowCount = (row < pRows - 1) ? pCols : (ppl.length - row * pCols);
+      const mx = grp.cx + (col - (rowCount - 1) / 2) * gap;
+      const my = yStart + row * rowH;
+
+      const clipId = 'clip-' + d.id;
+
+      // Define a circular clip path
+      mg.append('clipPath').attr('id', clipId)
+        .append('circle').attr('cx', mx).attr('cy', my).attr('r', R);
+
+      // White fill circle (visible when image fails to load)
+      const circle = mg.append('circle')
+        .attr('cx', mx).attr('cy', my).attr('r', R)
+        .attr('fill', '#1c1c2b')
+        .attr('stroke', d.color || '#ff6b35')
+        .attr('stroke-width', 1.5)
+        .attr('class', 'hm')
+        .attr('data-id', d.id)
+        .style('cursor', 'pointer');
+
+      if (d.img) {
+        mg.append('image')
+          .attr('href', d.img)
+          .attr('x', mx - R).attr('y', my - R)
+          .attr('width', R * 2).attr('height', R * 2)
+          .attr('clip-path', `url(#${clipId})`)
+          .attr('preserveAspectRatio', 'xMidYMid slice')
+          .attr('class', 'hm')
+          .attr('data-id', d.id)
+          .style('cursor', 'pointer')
+          .on('mouseenter', function(event) { _markerEnter(event, d, this); })
+          .on('mouseleave', () => _markerLeave())
+          .on('click', () => sel(d.id));
+      }
+
+      // Attach events to the circle too (catches clicks on image-load failures)
+      circle
+        .on('mouseenter', function(event) { _markerEnter(event, d, this); })
+        .on('mouseleave', () => _markerLeave())
+        .on('click', () => sel(d.id));
     });
 
-    yStart += pRows * pRowH + secGap;
+    yStart += pRows * rowH + secGap;
 
+    // ── Companies: white rect with contained logo image ──
     cos.forEach((d, i) => {
-      const r = Math.floor(i / cCols), c = i % cCols;
-      const rc = Math.min(cCols, cos.length - r * cCols);
-      const px = g.x + (c - (rc - 1) / 2) * cGapH;
-      const py = yStart + r * cRowH;
-      mkMarker(d, px, py, coW, coH, true, mg, tooltip, t);
+      const row = Math.floor(i / cCols);
+      const col = i % cCols;
+      const rowCount = (row < Math.ceil(cos.length / cCols) - 1) ? cCols : (cos.length - row * cCols);
+      const mx = grp.cx + (col - (rowCount - 1) / 2) * gap;
+      const my = yStart + row * rowH;
+
+      // White background rect
+      const rect = mg.append('rect')
+        .attr('x', mx - coW/2).attr('y', my - coH/2)
+        .attr('width', coW).attr('height', coH)
+        .attr('rx', 3)
+        .attr('fill', '#ffffff')
+        .attr('stroke', d.color || '#ff6b35')
+        .attr('stroke-width', 1)
+        .attr('class', 'hm')
+        .attr('data-id', d.id)
+        .style('cursor', 'pointer');
+
+      if (d.img) {
+        const pad = 2;
+        mg.append('image')
+          .attr('href', d.img)
+          .attr('x', mx - coW/2 + pad).attr('y', my - coH/2 + pad)
+          .attr('width', coW - pad*2).attr('height', coH - pad*2)
+          .attr('preserveAspectRatio', 'xMidYMid meet')
+          .attr('class', 'hm')
+          .attr('data-id', d.id)
+          .style('cursor', 'pointer')
+          .on('mouseenter', function(event) { _markerEnter(event, d, this); })
+          .on('mouseleave', () => _markerLeave())
+          .on('click', () => sel(d.id));
+      }
+
+      rect
+        .on('mouseenter', function(event) { _markerEnter(event, d, this); })
+        .on('mouseleave', () => _markerLeave())
+        .on('click', () => sel(d.id));
     });
   });
 }
 
-function mkMarker(d,px,py,w,h,isCo,mgRef,tooltip,t) {
-  const ini = d.name.split(' ').map(x=>x[0]).join('').slice(0,2);
-  const fo = document.createElementNS('http://www.w3.org/2000/svg','foreignObject');
-  fo.setAttribute('x', px - w/2);
-  fo.setAttribute('y', py - h/2);
-  fo.setAttribute('width', w);
-  fo.setAttribute('height', h);
-  fo.style.overflow = 'visible';
-
-  const el = document.createElement('div');
-  el.className = `hm ${isCo?'co':''}`;
-  el.style.cssText = `width:${w}px;height:${h}px;border-color:${d.color};font-size:8px;pointer-events:auto;`;
-  el.dataset.id = d.id;
-
-  if(d.img){const im=document.createElement('img');im.src=d.img;im.alt=d.name;im.loading='lazy';im.onerror=function(){this.remove();el.textContent=ini;};el.appendChild(im);}
-  else{el.textContent=ini;}
-
-  el.addEventListener('mouseenter',()=>{
-    // Position tooltip in screen coords
-    const rect = el.getBoundingClientRect();
-    tooltip.style.display='block';
-    tooltip.innerHTML=`<div class="tt-name">${d.name}</div><div class="tt-nw">${d.nwLabel}</div><div class="tt-route">${d.fromCity}, ${d.fromSt} → ${d.toCity}, ${d.toSt}</div>`;
-    const mapRect = document.getElementById('mapArea').getBoundingClientRect();
-    tooltip.style.left=(rect.right - mapRect.left + 8)+'px';
-    tooltip.style.top=(rect.top - mapRect.top - 10)+'px';
-    tooltip.style.borderColor=d.color;
-    document.querySelectorAll('.arc-bg,.arc-fg').forEach(p=>{
-      if(p.dataset.id===d.id){p.style.opacity=p.classList.contains('arc-bg')?'0.35':'1';p.style.strokeWidth='3';}
-      else{p.style.opacity=p.classList.contains('arc-bg')?'0.04':'0.15';}
-    });
+function _markerEnter(event, d, el) {
+  const tooltip = document.getElementById('tooltip');
+  // Use the SVG element's bounding rect to get screen coords
+  const svgRect = document.getElementById('mapSvg').getBoundingClientRect();
+  const mapRect = document.getElementById('mapArea').getBoundingClientRect();
+  const elRect = el.getBoundingClientRect ? el.getBoundingClientRect() : svgRect;
+  tooltip.style.display = 'block';
+  tooltip.innerHTML = `<div class="tt-name">${d.name}</div><div class="tt-nw">${d.nwLabel}</div><div class="tt-route">${d.fromCity}, ${d.fromSt} → ${d.toCity}, ${d.toSt}</div>`;
+  tooltip.style.left  = (elRect.right - mapRect.left + 8) + 'px';
+  tooltip.style.top   = (elRect.top   - mapRect.top  - 10) + 'px';
+  tooltip.style.borderColor = d.color;
+  document.querySelectorAll('.arc-bg,.arc-fg').forEach(p => {
+    if (p.dataset.id === d.id) {
+      p.style.opacity = p.classList.contains('arc-bg') ? '0.35' : '1';
+      p.style.strokeWidth = '3';
+    } else {
+      p.style.opacity = p.classList.contains('arc-bg') ? '0.04' : '0.15';
+    }
   });
-  el.addEventListener('mouseleave',()=>{tooltip.style.display='none';document.querySelectorAll('.arc-bg,.arc-fg').forEach(p=>{p.style.opacity='';p.style.strokeWidth='';});});
-  el.addEventListener('click',()=>sel(d.id));
+}
 
-  fo.appendChild(el);
-  mgRef.node().appendChild(fo);
+function _markerLeave() {
+  document.getElementById('tooltip').style.display = 'none';
+  document.querySelectorAll('.arc-bg,.arc-fg').forEach(p => {
+    p.style.opacity = '';
+    p.style.strokeWidth = '';
+  });
 }
 
 // ── STATE DETAIL ──
