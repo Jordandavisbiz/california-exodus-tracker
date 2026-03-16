@@ -14,7 +14,7 @@
 <div class="modal-overlay" id="statModal" onclick="if(event.target===this)this.classList.remove('show')">
   <div class="modal-box">
     <button class="modal-close" onclick="document.getElementById('statModal').classList.remove('show')">&times;</button>
-    <h3>VIRAL STAT CARDS — Click any card to download as PNG</h3>
+    <h3>VIRAL STATS — Ready to copy &amp; share on X</h3>
     <div class="stat-cards-grid" id="statCardsGrid"></div>
   </div>
 </div>
@@ -2133,8 +2133,8 @@ function openStatCards() {
   ];
 
   document.getElementById('statCardsGrid').innerHTML = cards.map((c,i) => `
-    <div class="viral-card" onclick="downloadStatCard(${i})">
-      <div class="vc-dl">&#8595; PNG</div>
+    <div class="viral-card" onclick="copyStatText(this, ${i})">
+      <div class="vc-dl">&#128203; COPY</div>
       <div class="vc-stat">${c.stat}</div>
       <div class="vc-text">${c.text}</div>
     </div>
@@ -2144,68 +2144,14 @@ function openStatCards() {
   window._viralCards = cards;
 }
 
-function downloadStatCard(idx) {
+function copyStatText(el, idx) {
   const card = window._viralCards[idx];
-  const c = document.createElement('canvas');
-  c.width = 600; c.height = 338; // 16:9 ratio for X
-  const ctx = c.getContext('2d');
-
-  // Background
-  ctx.fillStyle = '#0a0a0f'; ctx.fillRect(0,0,600,338);
-
-  // Top accent bar
-  ctx.fillStyle = '#ff6b35'; ctx.fillRect(0,0,600,4);
-
-  // Brand
-  ctx.font = 'bold 11px JetBrains Mono, monospace';
-  ctx.fillStyle = '#ff6b35'; ctx.fillText('EXODUS.tracker', 24, 30);
-  ctx.fillStyle = '#555570'; ctx.fillText('California Wealth Migration', 160, 30);
-
-  // Main stat
-  ctx.font = 'bold 52px JetBrains Mono, monospace';
-  ctx.fillStyle = '#ff6b35';
-  // Measure and potentially shrink
-  let fontSize = 52;
-  while (ctx.measureText(card.stat).width > 520 && fontSize > 28) {
-    fontSize -= 2;
-    ctx.font = `bold ${fontSize}px JetBrains Mono, monospace`;
-  }
-  ctx.fillText(card.stat, 24, 110);
-
-  // Body text — word wrap
-  ctx.font = '15px Inter, sans-serif';
-  ctx.fillStyle = '#b0b0c0';
-  const words = card.text.split(' ');
-  let line = '', y = 155;
-  words.forEach(w => {
-    const test = line + w + ' ';
-    if (ctx.measureText(test).width > 540) {
-      ctx.fillText(line.trim(), 24, y);
-      y += 22;
-      line = w + ' ';
-    } else {
-      line = test;
-    }
-  });
-  if (line) ctx.fillText(line.trim(), 24, y);
-
-  // Bottom bar
-  ctx.fillStyle = '#14141f'; ctx.fillRect(0, 310, 600, 28);
-  ctx.font = '9px JetBrains Mono, monospace';
-  ctx.fillStyle = '#555570';
-  ctx.fillText('Sources: Bloomberg, Forbes, IRS, SEC filings · March 2026', 24, 326);
-  ctx.fillText('jordandavisbiz.github.io/california-exodus-tracker', 380, 326);
-
-  // Side accent
-  ctx.fillStyle = '#ff6b35'; ctx.fillRect(0, 0, 4, 338);
-
-  c.toBlob(blob => {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `exodus-stat-${idx+1}.png`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const text = `${card.stat}\n\n${card.text}\n\njordandavisbiz.github.io/california-exodus-tracker`;
+  navigator.clipboard.writeText(text).then(() => {
+    const dl = el.querySelector('.vc-dl');
+    dl.textContent = '✓ COPIED';
+    dl.style.color = '#4caf50';
+    setTimeout(() => { dl.textContent = '📋 COPY'; dl.style.color = ''; }, 1500);
   });
 }
 
