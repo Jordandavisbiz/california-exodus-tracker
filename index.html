@@ -292,15 +292,10 @@
     z-index: 5;
   }
   .hm:hover {
-    transform: scale(1.4);
-    z-index: 15;
-    box-shadow: 0 0 16px rgba(255,107,53,0.5);
+    filter: brightness(1.3);
   }
   .hm.on {
-    transform: scale(1.5);
-    z-index: 15;
-    border-color: #fff;
-    box-shadow: 0 0 20px rgba(255,107,53,0.6);
+    filter: brightness(1.3);
   }
   .hm img { width: 100%; height: 100%; object-fit: cover; }
   .hm.co {
@@ -1711,16 +1706,16 @@ function renderMarkers() {
           .attr('width', R * 2).attr('height', R * 2)
           .attr('clip-path', `url(#${clipId})`)
           .attr('preserveAspectRatio', 'xMidYMid slice')
-          .attr('class', 'hm')
-          .attr('data-id', d.id)
-          .style('cursor', 'pointer')
-          .on('mouseenter', function(event) { _markerEnter(event, d, this); })
-          .on('mouseleave', () => _markerLeave())
-          .on('click', () => sel(d.id));
+          .style('pointer-events', 'none'); // image doesn't catch events
       }
 
-      // Attach events to the circle too (catches clicks on image-load failures)
-      circle
+      // Invisible hit area on top — catches all mouse events, no flicker
+      mg.append('circle')
+        .attr('cx', mx).attr('cy', my).attr('r', R)
+        .attr('fill', 'transparent')
+        .attr('class', 'hm')
+        .attr('data-id', d.id)
+        .style('cursor', 'pointer')
         .on('mouseenter', function(event) { _markerEnter(event, d, this); })
         .on('mouseleave', () => _markerLeave())
         .on('click', () => sel(d.id));
@@ -1755,15 +1750,17 @@ function renderMarkers() {
           .attr('x', mx - coW/2 + pad).attr('y', my - coH/2 + pad)
           .attr('width', coW - pad*2).attr('height', coH - pad*2)
           .attr('preserveAspectRatio', 'xMidYMid meet')
-          .attr('class', 'hm')
-          .attr('data-id', d.id)
-          .style('cursor', 'pointer')
-          .on('mouseenter', function(event) { _markerEnter(event, d, this); })
-          .on('mouseleave', () => _markerLeave())
-          .on('click', () => sel(d.id));
+          .style('pointer-events', 'none');
       }
 
-      rect
+      // Invisible hit rect on top
+      mg.append('rect')
+        .attr('x', mx - coW/2).attr('y', my - coH/2)
+        .attr('width', coW).attr('height', coH)
+        .attr('fill', 'transparent')
+        .attr('class', 'hm')
+        .attr('data-id', d.id)
+        .style('cursor', 'pointer')
         .on('mouseenter', function(event) { _markerEnter(event, d, this); })
         .on('mouseleave', () => _markerLeave())
         .on('click', () => sel(d.id));
@@ -2098,8 +2095,15 @@ function sel(id) {
       p.style.strokeWidth = '';
     }
   });
+  // Highlight selected marker with brighter stroke
   document.querySelectorAll('.hm').forEach(m => {
-    m.classList.toggle('on', m.dataset.id === id);
+    if (m.dataset.id === id) {
+      m.setAttribute('stroke-width', '3');
+      m.setAttribute('stroke', '#fff');
+    } else {
+      m.setAttribute('stroke-width', m.tagName === 'rect' ? '1' : '1.5');
+      m.setAttribute('stroke', '');
+    }
   });
 }
 
